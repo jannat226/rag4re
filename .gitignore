@@ -1,0 +1,81 @@
+# Your existing entries
+*.json
+fast/
+gutbrainie2025/
+venv/
+run.sh
+lightning_logs/
+*log
+wandb/
+*.pkl
+checkpoints/
+results/
+predictions/
+config.yaml
+__pycache__/
+thesis_env/
+
+
+# Additional ML/AI project entries to add:
+# Model files
+*.bin
+*.pt
+*.bin
+*.h5
+*.hdf5
+*.safetensors
+*.onnx
+*.pb
+*.tflite
+
+# Large data files
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+
+# Compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+cache/
+.cache/
+
+# Large datasets or embeddings
+embeddings/
+models/
+data/
+datasets/
+
+# Specific to your project (you might have these)
+dev5.json
+small_train.json
+beforeDoc/
+docs/
+*.index
+*.faiss
