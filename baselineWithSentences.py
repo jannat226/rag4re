@@ -81,7 +81,6 @@ valid_relations = {
     ("microbiome", "microbiome"): "compared to"
 }
 
-# FIXED: Load and split the data properly
 print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
@@ -98,14 +97,14 @@ train_items = train_items[:120]
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
 
-# Document preparation for new structure
+
 def prepare_documents(items):
     print("Preparing documents...")
     documents = []
-    for idx, item in enumerate(items):
+    for idx, item in enumerate(items) :
         documents.append(
             Document(
-                text=item["sample"],  # Use "sample" field
+                text=item["sample"],  
                 doc_id=str(idx),
                 metadata={
                     "subject": item["subject"],

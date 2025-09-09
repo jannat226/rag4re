@@ -15,6 +15,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import re
 
 # from llama_index.embeddings.openai import OpenAIEmbedding
 
@@ -203,12 +204,26 @@ tokenizer.add_special_tokens ({"pad_token": "[PAD]"})
 
 
 # Get top-k indices of train nodes per dev node (descending order)   
-top_k = 10
+top_k = 5
 top_k_indices_per_dev = np.argsort(sim_matrix, axis=1)[:, ::-1][:, :top_k]
 
 # Now for each dev item, prepare the prompt examples with mapping node idx -> train item idx
 all_outputs = []
-
+def safe_extract_relation(text):
+    # Try JSON first
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict) and "relation" in data:
+            return data["relation"].lower().replace("_", " ")
+    except Exception:
+        pass
+    
+    # Regex fallback
+    match = re.search(r'"relation"\s*:\s*"([^"]+)"', text)
+    if match:
+        return match.group(1).lower().replace("_", " ")
+    
+    return "unknown"
 for idx, dev_item in enumerate(dev_items):
     query_text = dev_item["metadata"]["abstract"]
     relations = dev_item.get('relations', [])
@@ -232,10 +247,11 @@ for idx, dev_item in enumerate(dev_items):
         if example_relations:
             example_head = example_relations[0].get('subject_span', 'N/A')
             example_tail = example_relations[0].get('object_span', 'N/A')
-            example_relation = valid_relations.get(
-                (example_relations[0].get('subject_type', ''), example_relations[0].get('object_type', '')),
-                'related_to'
-            )
+            # example_relation = valid_relations.get(
+            #     (example_relations[0].get('subject_label', ''), example_relations[0].get('object_label', '')),
+            #     'related_to'
+            # )
+            example_relation = example_relations[0].get('predicate', 'N/A')
         else:
             example_head, example_tail, example_relation = "N/A", "N/A", "related_to"
 
@@ -254,7 +270,12 @@ for idx, dev_item in enumerate(dev_items):
         messages = [
             {
                 "role": "system",
-                "content": f"Respond with JSON using only these relations: [{relation_list_str}]."
+                "content": (
+                    f"You are a relation extraction assistant. "
+                    f"Respond ONLY with valid JSON of the form: {{\"relation\": \"<one of these>\"}}. "
+                    f"The allowed relations are: [{relation_list_str}]. "
+                    f"Do NOT output explanations, lists, or multiple answers."
+                )
             },
             {
                 "role": "user",
@@ -282,13 +303,14 @@ for idx, dev_item in enumerate(dev_items):
             generation_output = generation_model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
-                max_new_tokens=40,
+                max_new_tokens=80,
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
             )
 
         gen_tokens = generation_output[0][inputs["input_ids"].shape[-1]:]
         generated_text = tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+        
 
 
         try:
@@ -298,7 +320,8 @@ for idx, dev_item in enumerate(dev_items):
         except Exception:
 
             pred_relation = generated_text.split("\n")[0].lower().replace("_", " ")
-
+        pred_relation = safe_extract_relation(generated_text)
+        
         if pred_relation not in [r.lower() for r in valid_relations.values()]:
             print(f"Warning: prediction '{pred_relation}' not in valid relations.")
 
@@ -312,6 +335,8 @@ for idx, dev_item in enumerate(dev_items):
 
         print(f"Prediction: {pred_relation}")
 
+with open('rag4re_predictions_baseline_with_llama_for_ten_shot.json', 'w') as out_f:
+    json.dump(all_outputs, out_f, indent=2)
 
 #evaluation 
 wandb.init(project="relation-extraction", name="RAG_flanT5_eval")
@@ -319,27 +344,8 @@ wandb.init(project="relation-extraction", name="RAG_flanT5_eval")
 
 print("=== EVALUATION  ===")
 
-all_predictions = []
-all_groundtruths = []
-
-prediction_index = 0
-
-for dev_item in dev_items:
-    relations = dev_item.get('relations', [])
-    if not relations:
-        continue
-    
-    for relation in relations:
-       
-        true_relation = relation.get('predicate', 'unknown').lower().strip()
-        all_groundtruths.append(true_relation)
-
-        if prediction_index < len(outputs):
-            pred_rel = outputs[prediction_index]["prediction"]            
-        else:
-            pred_rel = "unknown"            
-        all_predictions.append(pred_rel)
-        prediction_index += 1
+all_predictions = [item["prediction"] for item in all_outputs]
+all_groundtruths = [item["ground_truth"] for item in all_outputs]
 
 print(f"Arrays: predictions={len(all_predictions)}, ground_truth={len(all_groundtruths)}")
 print(f"Unique ground truths: {sorted(set(all_groundtruths))}")
@@ -355,9 +361,11 @@ for i in range(min(10, len(all_predictions))):
 # Calculate metrics
 if len(all_predictions) == len(all_groundtruths):
     accuracy = accuracy_score(all_groundtruths, all_predictions)
-    precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        all_groundtruths, all_predictions, average='weighted'
+    )
     
-    print(f"\nEvaluation RESULTS for one shot:")
+    print(f"\nEvaluation RESULTS:")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
@@ -371,10 +379,8 @@ if len(all_predictions) == len(all_groundtruths):
         "eval/f1_weighted_fixed": f1
     })
     
-    # Calculate matches for manual verification
+    # Exact match count
     matches = sum(1 for p, g in zip(all_predictions, all_groundtruths) if p == g)
     print(f"Exact matches: {matches} out of {len(all_predictions)}")
-    
 else:
-    print("ERROR!")
-    
+    print("ERROR: mismatch between prediction and ground truth count!")
