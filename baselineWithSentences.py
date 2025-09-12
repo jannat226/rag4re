@@ -189,9 +189,6 @@ print(f"Starting prediction generation for {len(dev_items)} dev items...")
 
 
 for idx, dev_item in enumerate(dev_items):
-    print(f"Processing dev item {idx+1}/{len(dev_items)}")
-    
-
     query_text = dev_item["sample"]  # Use "sample" instead of metadata
     retrieved_train_idx = nearest_indices[idx]
 
@@ -202,7 +199,8 @@ for idx, dev_item in enumerate(dev_items):
         
         subject_label = retrieved_item["subject_label"]
         object_label = retrieved_item["object_label"]
-        example_relation = valid_relations.get((subject_label, object_label), 'N/A')
+        example_relation = retrieved_item["relation"]
+        example_relation = valid_relations.get((subject_label, object_label), 'None')
         example_head = retrieved_item["subject"]
         example_tail = retrieved_item["object"]
     else:
@@ -242,6 +240,7 @@ for idx, dev_item in enumerate(dev_items):
         return_tensors="pt"
     )
     inputs = {k: v.to(device) for k, v in inputs.items()}
+    print("message is ", messages)
     
     with torch.no_grad():
         outputs_ids = generation_model.generate(
@@ -268,7 +267,7 @@ for idx, dev_item in enumerate(dev_items):
         prediction_json = json.loads(prediction_raw)
         raw_relation = prediction_json.get("relation", "")
         prediction = normalize_prediction(raw_relation)
-        print(f"From JSON: '{raw_relation}' -> '{prediction}'")
+        # print(f"From JSON: '{raw_relation}' -> '{prediction}'")
     except json.JSONDecodeError:
         print("JSON parsing failed, trying fallback methods...")
         prediction_text = prediction_raw.split('\n')[0].strip()
@@ -290,14 +289,16 @@ for idx, dev_item in enumerate(dev_items):
         "tail": tail_entity,
         "subject_label": dev_item["subject_label"],
         "object_label": dev_item["object_label"],
-        "raw_prediction": prediction_raw
+        "raw_prediction": prediction_raw,
+        # "ground_prediction": dev_item["relation"]
+        "ground_prediction": valid_relations.get((subject_label, object_label), 'None')
     })
     
     print(f"Final prediction: '{prediction}'")
 
 # Save predictions
 print("Saving predictions...")
-with open('rag4re_predictions_new.json', 'w') as out_f:
+with open('rag4re_predictions_sentence.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
 # FIXED: Evaluation using subject/object labels
@@ -311,8 +312,8 @@ for i, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     # Generate ground truth using subject_label and object_label
     subject_label = dev_item["subject_label"]
     object_label = dev_item["object_label"]
+    # true_relation = dev_item["relation"]
     true_relation = valid_relations.get((subject_label, object_label), 'related_to').lower()
-    
     all_groundtruths.append(true_relation)
     all_predictions.append(output["prediction"])
 

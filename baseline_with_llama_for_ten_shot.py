@@ -204,7 +204,7 @@ tokenizer.add_special_tokens ({"pad_token": "[PAD]"})
 
 
 # Get top-k indices of train nodes per dev node (descending order)   
-top_k = 5
+top_k = 10
 top_k_indices_per_dev = np.argsort(sim_matrix, axis=1)[:, ::-1][:, :top_k]
 
 # Now for each dev item, prepare the prompt examples with mapping node idx -> train item idx
@@ -245,8 +245,8 @@ for idx, dev_item in enumerate(dev_items):
         retrieved_text = train_items[train_item_idx]["metadata"]["abstract"]
         example_relations = train_items[train_item_idx].get('relations', [])
         if example_relations:
-            example_head = example_relations[0].get('subject_span', 'N/A')
-            example_tail = example_relations[0].get('object_span', 'N/A')
+            example_head = example_relations[0].get('subject_text_span', 'N/A')
+            example_tail = example_relations[0].get('object_text_span', 'N/A')
             # example_relation = valid_relations.get(
             #     (example_relations[0].get('subject_label', ''), example_relations[0].get('object_label', '')),
             #     'related_to'
@@ -264,8 +264,8 @@ for idx, dev_item in enumerate(dev_items):
     relation_list_str = ", ".join(relation_types)
 
     for relation in relations:
-        head_entity = relation.get('subject_span', 'N/A')
-        tail_entity = relation.get('object_span', 'N/A')
+        head_entity = relation.get('subject_text_span', 'N/A')
+        tail_entity = relation.get('object_text_span', 'N/A')
 
         messages = [
             {
@@ -365,7 +365,7 @@ if len(all_predictions) == len(all_groundtruths):
         all_groundtruths, all_predictions, average='weighted'
     )
     
-    print(f"\nEvaluation RESULTS:")
+    print(f"\nEvaluation RESULTS for llama with 10 shots:")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")

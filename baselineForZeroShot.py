@@ -190,7 +190,6 @@ for idx, dev_item in enumerate(dev_items):
             # Convert to lowercase and replace underscores with spaces
             return pred_text.lower().replace('_', ' ').strip()
         
-       
         prediction = "unknown"  # Default fallback
         try:
            

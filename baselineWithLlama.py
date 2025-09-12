@@ -306,7 +306,7 @@ for idx, dev_item in enumerate(dev_items):
                 )
             }
         ]
-        
+        print("message is ", messages)
         # Apply chat template and tokenize
         inputs = tokenizer.apply_chat_template(
             messages,
@@ -352,7 +352,7 @@ for idx, dev_item in enumerate(dev_items):
             prediction_json = json.loads(prediction_raw)
             raw_relation = prediction_json.get("relation", "")
             prediction = normalize_prediction(raw_relation)
-            print(f"From JSON: '{raw_relation}' -> '{prediction}'")
+            # print(f"From JSON: '{raw_relation}' -> '{prediction}'")
             
         except json.JSONDecodeError:
             print("JSON parsing failed, trying fallback methods...")
@@ -389,6 +389,7 @@ for idx, dev_item in enumerate(dev_items):
         })
         
         print(f"Final prediction: '{prediction}'")
+        print(f"ground_truth: ,{relation.get('predicate', 'unknown').lower().strip()}")
         print("-" * 50)
         
 # Save predictions
@@ -401,8 +402,10 @@ wandb.init(project="relation-extraction", name="RAG_flanT5_eval")
 
 print("=== EVALUATION  ===")
 
-all_predictions = []
+all_predictions_dict = {}
+all_groundtruths_dict = {}
 all_groundtruths = []
+all_predictions = []
 
 prediction_index = 0
 
@@ -410,30 +413,41 @@ for dev_item in dev_items:
     relations = dev_item.get('relations', [])
     if not relations:
         continue
-    
+
     for relation in relations:
-      
         true_relation = relation.get('predicate', 'unknown').lower().strip()
         all_groundtruths.append(true_relation)
+        # Count ground truth
+        if true_relation in all_groundtruths_dict:
+            all_groundtruths_dict[true_relation] += 1
+        else:
+            all_groundtruths_dict[true_relation] = 1
 
         # Get corresponding prediction
         if prediction_index < len(outputs):
-            pred_rel = outputs[prediction_index]["prediction"]            
+            pred_rel = outputs[prediction_index]["prediction"]
         else:
-            pred_rel = "unknown"            
+            pred_rel = "unknown"
         all_predictions.append(pred_rel)
+
+        # Count prediction
+        if pred_rel in all_predictions_dict:
+            all_predictions_dict[pred_rel] += 1
+        else:
+            all_predictions_dict[pred_rel] = 1
+
         prediction_index += 1
 
-print(f"Arrays: predictions={len(all_predictions)}, ground_truth={len(all_groundtruths)}")
-print(f"Unique ground truths: {sorted(set(all_groundtruths))}")
-print(f"Unique predictions: {sorted(set(all_predictions))}")
+print(f"Arrays: predictions={len(all_predictions_dict)}, ground_truth={len(all_groundtruths_dict)}")
+print(f"Unique ground truths: {all_groundtruths_dict}")
+print(f"Unique predictions: {all_predictions_dict}")
 
 # Show first few comparisons
 print("\nFirst 10 comparisons:")
-for i in range(min(10, len(all_predictions))):
-    p, g = all_predictions[i], all_groundtruths[i]
-    match = "✓" if p == g else "✗"
-    print(f"  {match} pred='{p}' | true='{g}'")
+# for i in range(min(10, len(all_predictions))):
+#     p, g = all_predictions[i], all_groundtruths[i]
+#     match = "✓" if p == g else "✗"
+#     print(f"  {match} pred='{p}' | true='{g}'")
 
 # Calculate metrics
 if len(all_predictions) == len(all_groundtruths):

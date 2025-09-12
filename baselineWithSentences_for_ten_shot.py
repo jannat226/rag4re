@@ -14,7 +14,7 @@ import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import qdrant_client
-
+import re
 device = "cuda:0"
 
 # Same valid_relations dictionary
@@ -81,7 +81,6 @@ valid_relations = {
     ("microbiome", "microbiome"): "compared to"
 }
 
-# FIXED: Load and split the data properly
 print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
@@ -98,14 +97,14 @@ train_items = train_items[:120]
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
 
-# Document preparation for new structure
+
 def prepare_documents(items):
     print("Preparing documents...")
     documents = []
-    for idx, item in enumerate(items):
+    for idx, item in enumerate(items) :
         documents.append(
             Document(
-                text=item["sample"],  # Use "sample" field
+                text=item["sample"],  
                 doc_id=str(idx),
                 metadata={
                     "subject": item["subject"],
@@ -140,6 +139,9 @@ dev_documents = prepare_documents(dev_items)
 print("Running pipeline...")
 train_nodes = pipeline.run(documents=train_documents)
 dev_nodes = pipeline.run(documents=dev_documents)
+#node to train_item index mapping from ref_doc_id
+node_to_train_idx = [int(node.ref_doc_id) for node in train_nodes]
+
 
 print(f"Created {len(train_nodes)} train nodes with embeddings")
 print(f"Created {len(dev_nodes)} dev nodes with embeddings")
@@ -172,9 +174,7 @@ async def similarity_matrix(dev_nodes, train_nodes):
 sim_matrix = asyncio.run(similarity_matrix(dev_nodes, train_nodes))
 print("Similarity matrix shape:", sim_matrix.shape)
 
-# Get nearest indices (FIXED: axis=1 for dev x train matrix)
-nearest_indices = np.argmax(sim_matrix, axis=1)
-print(f"Nearest indices: {nearest_indices}")
+
 
 # Initialize tokenizer and model
 print("Loading tokenizer and model...")
@@ -186,121 +186,107 @@ tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 relation_types = list(set(valid_relations.values()))
 outputs = []
 
-print(f"Starting prediction generation for {len(dev_items)} dev items...")
 
-# FIXED: Generate predictions using the correct data structure
+
+# Top-k retrieval
+top_k = 10
+top_k_indices_per_dev = np.argsort(sim_matrix, axis=1)[:, ::-1][:, :top_k]
+
+outputs = []
+
 for idx, dev_item in enumerate(dev_items):
     print(f"Processing dev item {idx+1}/{len(dev_items)}")
-    
-    # FIXED: Use correct field names for new data structure
-    query_text = dev_item["sample"]  # Use "sample" instead of metadata
-    retrieved_train_idx = nearest_indices[idx]
 
-    if 0 <= retrieved_train_idx < len(train_items):
-        # FIXED: Use correct field names
-        retrieved_item = train_items[retrieved_train_idx]
-        retrieved_text = retrieved_item["sample"]
-        
-        # Get example relation from subject/object labels
-        subject_label = retrieved_item["subject_label"]
-        object_label = retrieved_item["object_label"]
-        example_relation = valid_relations.get((subject_label, object_label), 'related_to')
-        example_head = retrieved_item["subject"]
-        example_tail = retrieved_item["object"]
-    else:
-        print(f"Warning: retrieved index {retrieved_train_idx} out of range")
-        continue
-
-    # FIXED: Use correct field names for dev item
+    query_text = dev_item["sample"]
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
-    
-    # Create messages
+
+    # --- build 10-shot examples ---
+    examples_str = ""
+    for ex_i, train_idx in enumerate(top_k_indices_per_dev[idx]):
+        t_item = train_items[train_idx]
+        ex_head = t_item["subject"]
+        ex_tail = t_item["object"]
+        ex_rel = valid_relations.get(
+            (t_item["subject_label"], t_item["object_label"]),
+            t_item.get("relation", "related_to")
+        )
+        examples_str += (
+            f"Example {ex_i+1}: Sentence: {t_item['sample']}\n"
+            f"Entities: {ex_head}, {ex_tail}\n"
+            f"Relation: {ex_rel}\n\n"
+        )
+
+    relation_list_str = ", ".join(relation_types)
+
     messages = [
         {
-                "role": "system",
-                "content": (
-                    f"You are a relation extraction assistant. "
-                    f"Respond ONLY with valid JSON of the form: {{\"relation\": \"<one of these>\"}}. "
-                    f"The allowed relations are: [{relation_list_str}]. "
-                    f"Do NOT output explanations, lists, or multiple answers."
-                )
+            "role": "system",
+            "content": (
+                f"You are a relation extraction assistant. "
+                f"Respond ONLY with JSON of the form: {{\"relation\": \"<one of these>\"}}. "
+                f"The allowed relations are: [{relation_list_str}]. "
+                f"Do NOT output explanations, lists, or multiple answers."
+            )
         },
         {
             "role": "user",
             "content": (
-                f"Relevant example: {retrieved_text}\n"
-                f"Example entities: {example_head}, {example_tail}\n"
-                f"Example relation: {example_relation}\n\n"
-                f"New sentence: {query_text}\n"
+                f"{examples_str}"
+                f"Now classify this new sentence:\n"
+                f"Sentence: {query_text}\n"
                 f"Entities: {head_entity}, {tail_entity}"
             )
-        }
+        },
     ]
-    
-    # Generate prediction
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        padding=True,
-        return_attention_mask=True,
-        return_dict=True,
-        return_tensors="pt"
-    )
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    
-    with torch.no_grad():
-        outputs_ids = generation_model.generate(
-            input_ids=inputs['input_ids'],
-            attention_mask=inputs['attention_mask'],
-            max_new_tokens=40,
-            do_sample=False,
-            pad_token_id=tokenizer.pad_token_id
-        )
-    
-    # Decode prediction
-    input_length = inputs['input_ids'].shape[-1]
-    generated_tokens = outputs_ids[0][input_length:]
-    prediction_raw = tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
-    
-    def normalize_prediction(pred_text):
-        if not pred_text:
-            return "unknown"
-        return pred_text.lower().replace('_', ' ').strip()
-    
 
-    prediction = "unknown"
+    # Tokenize & generate
+    inputs = tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            padding=True,
+            return_attention_mask=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
+    with torch.no_grad():
+        generation_output = generation_model.generate(
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
+        max_new_tokens=80,
+        do_sample=False,
+        pad_token_id=tokenizer.pad_token_id,
+    )
+
+    gen_tokens = generation_output[0][inputs["input_ids"].shape[-1]:]
+    generated_text = tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+        
+
+    # Parse relation safely
+    pred = "unknown"
     try:
-        prediction_json = json.loads(prediction_raw)
-        raw_relation = prediction_json.get("relation", "")
-        prediction = normalize_prediction(raw_relation)
-        print(f"From JSON: '{raw_relation}' -> '{prediction}'")
-    except json.JSONDecodeError:
-        print("JSON parsing failed, trying fallback methods...")
-        prediction_text = prediction_raw.split('\n')[0].strip()
-        if '{"relation":' in prediction_text:
-            import re
-            match = re.search(r'"relation":\s*"([^"]*)"', prediction_text)
-            if match:
-                raw_relation = match.group(1)
-                prediction = normalize_prediction(raw_relation)
-                print(f"From regex: '{raw_relation}' -> '{prediction}'")
-            else:
-                prediction = normalize_prediction(prediction_text)
-        else:
-            prediction = normalize_prediction(prediction_text)
-    
+        data = json.loads(generated_text)
+        pred = data.get("relation", "unknown").lower()
+    except:
+        m = re.search(r'"relation":\s*"([^"]+)"', generated_text)
+        if m:
+            pred = m.group(1).lower()
+
     outputs.append({
-        "prediction": prediction,
+        "prediction": pred,
         "head": head_entity,
         "tail": tail_entity,
         "subject_label": dev_item["subject_label"],
         "object_label": dev_item["object_label"],
-        "raw_prediction": prediction_raw
+        "ground_truth": dev_item.get("relation", "unknown").lower(),
+        "raw_prediction": generated_text
     })
+    print(f"Prediction: {pred}")
     
-    print(f"Final prediction: '{prediction}'")
 
 # Save predictions
 print("Saving predictions...")
@@ -339,7 +325,7 @@ if len(all_predictions) == len(all_groundtruths):
     accuracy = accuracy_score(all_groundtruths, all_predictions)
     precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
     
-    print(f"\n Evaluation RESULTS for baseline with sentences:")
+    print(f"\n Evaluation RESULTS for baseline with sentences with 10shots:")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")

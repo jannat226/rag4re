@@ -8,7 +8,8 @@ from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
+# from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
 import numpy as np
 import asyncio
 import wandb
@@ -81,7 +82,6 @@ valid_relations = {
     ("microbiome", "microbiome"): "compared to"
 }
 
-# FIXED: Load and split the data properly
 print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
@@ -98,14 +98,14 @@ train_items = train_items[:120]
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
 
-# Document preparation for new structure
+
 def prepare_documents(items):
     print("Preparing documents...")
     documents = []
-    for idx, item in enumerate(items):
+    for idx, item in enumerate(items) :
         documents.append(
             Document(
-                text=item["sample"],  # Use "sample" field
+                text=item["sample"],  
                 doc_id=str(idx),
                 metadata={
                     "subject": item["subject"],
@@ -178,9 +178,12 @@ print(f"Nearest indices: {nearest_indices}")
 
 # Initialize tokenizer and model
 print("Loading tokenizer and model...")
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
-tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+# tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+# generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
+# tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+
+tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True)
+generation_model = AutoModelForCausalLM.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True)
 
 # Prepare relation types
 relation_types = list(set(valid_relations.values()))
@@ -188,23 +191,20 @@ outputs = []
 
 print(f"Starting prediction generation for {len(dev_items)} dev items...")
 
-# FIXED: Generate predictions using the correct data structure
+
 for idx, dev_item in enumerate(dev_items):
-    print(f"Processing dev item {idx+1}/{len(dev_items)}")
-    
-    # FIXED: Use correct field names for new data structure
     query_text = dev_item["sample"]  # Use "sample" instead of metadata
     retrieved_train_idx = nearest_indices[idx]
 
     if 0 <= retrieved_train_idx < len(train_items):
-        # FIXED: Use correct field names
+
         retrieved_item = train_items[retrieved_train_idx]
         retrieved_text = retrieved_item["sample"]
         
-        # Get example relation from subject/object labels
         subject_label = retrieved_item["subject_label"]
         object_label = retrieved_item["object_label"]
-        example_relation = valid_relations.get((subject_label, object_label), 'related_to')
+        example_relation = retrieved_item["relation"]
+        example_relation = valid_relations.get((subject_label, object_label), 'None')
         example_head = retrieved_item["subject"]
         example_tail = retrieved_item["object"]
     else:
@@ -218,13 +218,8 @@ for idx, dev_item in enumerate(dev_items):
     # Create messages
     messages = [
         {
-                "role": "system",
-                "content": (
-                    f"You are a relation extraction assistant. "
-                    f"Respond ONLY with valid JSON of the form: {{\"relation\": \"<one of these>\"}}. "
-                    f"The allowed relations are: [{relation_list_str}]. "
-                    f"Do NOT output explanations, lists, or multiple answers."
-                )
+            "role": "system",
+            "content": f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"
         },
         {
             "role": "user",
@@ -243,12 +238,12 @@ for idx, dev_item in enumerate(dev_items):
         messages,
         add_generation_prompt=True,
         tokenize=True,
-        padding=True,
-        return_attention_mask=True,
         return_dict=True,
-        return_tensors="pt"
+        return_tensors="pt",
     )
+
     inputs = {k: v.to(device) for k, v in inputs.items()}
+    print("message is ", messages)
     
     with torch.no_grad():
         outputs_ids = generation_model.generate(
@@ -275,7 +270,7 @@ for idx, dev_item in enumerate(dev_items):
         prediction_json = json.loads(prediction_raw)
         raw_relation = prediction_json.get("relation", "")
         prediction = normalize_prediction(raw_relation)
-        print(f"From JSON: '{raw_relation}' -> '{prediction}'")
+        # print(f"From JSON: '{raw_relation}' -> '{prediction}'")
     except json.JSONDecodeError:
         print("JSON parsing failed, trying fallback methods...")
         prediction_text = prediction_raw.split('\n')[0].strip()
@@ -297,14 +292,16 @@ for idx, dev_item in enumerate(dev_items):
         "tail": tail_entity,
         "subject_label": dev_item["subject_label"],
         "object_label": dev_item["object_label"],
-        "raw_prediction": prediction_raw
+        "raw_prediction": prediction_raw,
+        # "ground_prediction": dev_item["relation"]
+        "ground_prediction": valid_relations.get((subject_label, object_label), 'None')
     })
     
     print(f"Final prediction: '{prediction}'")
 
 # Save predictions
 print("Saving predictions...")
-with open('rag4re_predictions_new.json', 'w') as out_f:
+with open('rag4re_predictions_sentence.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
 # FIXED: Evaluation using subject/object labels
@@ -318,8 +315,8 @@ for i, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     # Generate ground truth using subject_label and object_label
     subject_label = dev_item["subject_label"]
     object_label = dev_item["object_label"]
+    # true_relation = dev_item["relation"]
     true_relation = valid_relations.get((subject_label, object_label), 'related_to').lower()
-    
     all_groundtruths.append(true_relation)
     all_predictions.append(output["prediction"])
 
