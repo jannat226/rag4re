@@ -8,8 +8,8 @@ from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from transformers import AutoTokenizer, AutoModelForCausalLM
-# from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
+# from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
 import numpy as np
 import asyncio
 import wandb
@@ -178,12 +178,11 @@ print(f"Nearest indices: {nearest_indices}")
 
 # Initialize tokenizer and model
 print("Loading tokenizer and model...")
-# tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-# generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
-# tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+
 
 tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True)
-generation_model = AutoModelForCausalLM.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True)
+generation_model = AutoModelForCausalLM.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True,  torch_dtype=torch.float16 )
+tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
 # Prepare relation types
 relation_types = list(set(valid_relations.values()))
@@ -193,7 +192,7 @@ print(f"Starting prediction generation for {len(dev_items)} dev items...")
 
 
 for idx, dev_item in enumerate(dev_items):
-    query_text = dev_item["sample"]  # Use "sample" instead of metadata
+    query_text = dev_item["sample"] 
     retrieved_train_idx = nearest_indices[idx]
 
     if 0 <= retrieved_train_idx < len(train_items):
@@ -211,7 +210,6 @@ for idx, dev_item in enumerate(dev_items):
         print(f"Warning: retrieved index {retrieved_train_idx} out of range")
         continue
 
-    # FIXED: Use correct field names for dev item
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
     
@@ -238,22 +236,26 @@ for idx, dev_item in enumerate(dev_items):
         messages,
         add_generation_prompt=True,
         tokenize=True,
-        return_dict=True,
-        return_tensors="pt",
+        return_tensors="pt"
     )
-
-    inputs = {k: v.to(device) for k, v in inputs.items()}
+    inputs = {k: v.to(device) for k, v in inputs.items()} 
     print("message is ", messages)
+    # inputs = tokenizer.apply_chat_template(
+	# messages,
+	# add_generation_prompt=True,
+	# tokenize=True,
+	# return_dict=True,
+	# return_tensors="pt",
+    # ).to(generation_model.device)
     
     with torch.no_grad():
         outputs_ids = generation_model.generate(
             input_ids=inputs['input_ids'],
-            attention_mask=inputs['attention_mask'],
+            # attention_mask=inputs['attention_mask'],
             max_new_tokens=40,
-            do_sample=False,
             pad_token_id=tokenizer.pad_token_id
         )
-    
+   
     # Decode prediction
     input_length = inputs['input_ids'].shape[-1]
     generated_tokens = outputs_ids[0][input_length:]
@@ -266,6 +268,7 @@ for idx, dev_item in enumerate(dev_items):
     
 
     prediction = "unknown"
+    
     try:
         prediction_json = json.loads(prediction_raw)
         raw_relation = prediction_json.get("relation", "")
@@ -296,7 +299,7 @@ for idx, dev_item in enumerate(dev_items):
         # "ground_prediction": dev_item["relation"]
         "ground_prediction": valid_relations.get((subject_label, object_label), 'None')
     })
-    
+   
     print(f"Final prediction: '{prediction}'")
 
 # Save predictions
@@ -304,7 +307,7 @@ print("Saving predictions...")
 with open('rag4re_predictions_sentence.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
-# FIXED: Evaluation using subject/object labels
+# Evaluation using subject/object labels
 print("Starting evaluation...")
 wandb.init(project="relation-extraction", name="RAG4RE_new_format")
 
