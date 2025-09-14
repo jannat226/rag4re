@@ -8,13 +8,13 @@ from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-# from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
+from llama_index.llms.ollama import Ollama
+from llama_index.core.llms import ChatMessage
 import numpy as np
 import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from llama_index.llms.ollama import Ollama
 import qdrant_client
 
 device = "cuda:0"
@@ -88,7 +88,6 @@ processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
 
 dev_items = dev_items[:82]
-
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
 train_items = read_json(processed_train_file)
 
@@ -177,13 +176,12 @@ print("Similarity matrix shape:", sim_matrix.shape)
 nearest_indices = np.argmax(sim_matrix, axis=1)
 print(f"Nearest indices: {nearest_indices}")
 
-# Initialize tokenizer and model
-print("Loading tokenizer and model...")
 
-
-tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True)
-generation_model = AutoModelForCausalLM.from_pretrained("deepseek-ai/DeepSeek-R1", trust_remote_code=True,  torch_dtype=torch.float16 )
-tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+generation_model = Ollama(
+    model="qwen3:8b",
+    request_timeout=300,
+    context_window=8000,
+)
 
 # Prepare relation types
 relation_types = list(set(valid_relations.values()))
@@ -193,7 +191,7 @@ print(f"Starting prediction generation for {len(dev_items)} dev items...")
 
 
 for idx, dev_item in enumerate(dev_items):
-    query_text = dev_item["sample"] 
+    query_text = dev_item["sample"]  # Use "sample" instead of metadata
     retrieved_train_idx = nearest_indices[idx]
 
     if 0 <= retrieved_train_idx < len(train_items):
@@ -211,57 +209,39 @@ for idx, dev_item in enumerate(dev_items):
         print(f"Warning: retrieved index {retrieved_train_idx} out of range")
         continue
 
+    # FIXED: Use correct field names for dev item
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
     
     # Create messages
     messages = [
-        {
-            "role": "system",
-            "content": f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"
-        },
-        {
-            "role": "user",
-            "content": (
+        ChatMessage(
+            
+            role= "system",
+            content= f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"
+        
+        ),
+        ChatMessage(role= "user",
+            content= 
                 f"Relevant example: {retrieved_text}\n"
                 f"Example entities: {example_head}, {example_tail}\n"
                 f"Example relation: {example_relation}\n\n"
                 f"New sentence: {query_text}\n"
                 f"Entities: {head_entity}, {tail_entity}"
             )
-        }
-    ]
+        ]
     
     # Generate prediction
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_tensors="pt"
-    )
-    inputs = {k: v.to(device) for k, v in inputs.items()} 
-    print("message is ", messages)
-    # inputs = tokenizer.apply_chat_template(
-	# messages,
-	# add_generation_prompt=True,
-	# tokenize=True,
-	# return_dict=True,
-	# return_tensors="pt",
-    # ).to(generation_model.device)
+    pred_text = generation_model.chat(messages)
     
-    with torch.no_grad():
-        outputs_ids = generation_model.generate(
-            input_ids=inputs['input_ids'],
-            # attention_mask=inputs['attention_mask'],
-            max_new_tokens=40,
-            pad_token_id=tokenizer.pad_token_id
-        )
-   
-    # Decode prediction
-    input_length = inputs['input_ids'].shape[-1]
-    generated_tokens = outputs_ids[0][input_length:]
-    prediction_raw = tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
-    
+
+    prediction_raw  = pred_text.message.content 
+    print("prediction_raw",prediction_raw)
+    # pred_text = text_response
+    # data = json.loads(pred_text)
+    # pred_text= data["relation"]
+
+
     def normalize_prediction(pred_text):
         if not pred_text:
             return "unknown"
@@ -269,10 +249,9 @@ for idx, dev_item in enumerate(dev_items):
     
 
     prediction = "unknown"
-    
     try:
-        prediction_json = json.loads(prediction_raw)
-        raw_relation = prediction_json.get("relation", "")
+        prediction_json =  json.loads(prediction_raw)
+        raw_relation = prediction_json["relation"]
         prediction = normalize_prediction(raw_relation)
         # print(f"From JSON: '{raw_relation}' -> '{prediction}'")
     except json.JSONDecodeError:
@@ -300,7 +279,7 @@ for idx, dev_item in enumerate(dev_items):
         # "ground_prediction": dev_item["relation"]
         "ground_prediction": valid_relations.get((subject_label, object_label), 'None')
     })
-   
+    
     print(f"Final prediction: '{prediction}'")
 
 # Save predictions
@@ -308,7 +287,7 @@ print("Saving predictions...")
 with open('rag4re_predictions_sentence.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
-# Evaluation using subject/object labels
+# FIXED: Evaluation using subject/object labels
 print("Starting evaluation...")
 wandb.init(project="relation-extraction", name="RAG4RE_new_format")
 

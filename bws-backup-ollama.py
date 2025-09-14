@@ -9,6 +9,8 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
+from llama_index.llms.ollama import Ollama
+from llama_index.core.llms import ChatMessage
 import numpy as np
 import asyncio
 import wandb
@@ -81,13 +83,11 @@ valid_relations = {
     ("microbiome", "microbiome"): "compared to"
 }
 
-# FIXED: Load and split the data properly
 print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
 
 dev_items = dev_items[:82]
-
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
 train_items = read_json(processed_train_file)
 
@@ -98,14 +98,14 @@ train_items = train_items[:120]
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
 
-# Document preparation for new structure
+
 def prepare_documents(items):
     print("Preparing documents...")
     documents = []
-    for idx, item in enumerate(items):
+    for idx, item in enumerate(items) :
         documents.append(
             Document(
-                text=item["sample"],  # Use "sample" field
+                text=item["sample"],  
                 doc_id=str(idx),
                 metadata={
                     "subject": item["subject"],
@@ -178,9 +178,14 @@ print(f"Nearest indices: {nearest_indices}")
 
 # Initialize tokenizer and model
 print("Loading tokenizer and model...")
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
-tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+# tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+# generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
+# tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+generation_model = Ollama(
+    model="llama3.1:latest",
+    request_timeout=300,
+    context_window=8000,
+)
 
 # Prepare relation types
 relation_types = list(set(valid_relations.values()))
