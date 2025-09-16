@@ -1,4 +1,3 @@
-# Corrected RAG4RE for new data structure
 from utils import read_json, write_json
 import torch
 import json
@@ -16,6 +15,7 @@ import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import qdrant_client
+import pandas as pd
 
 device = "cuda:0"
 
@@ -144,7 +144,7 @@ dev_nodes = pipeline.run(documents=dev_documents)
 print(f"Created {len(train_nodes)} train nodes with embeddings")
 print(f"Created {len(dev_nodes)} dev nodes with embeddings")
 
-# Set up settings
+# Set up embedding model settings
 local_embed_model = HuggingFaceEmbedding(model_name="all-MiniLM-L6-v2")
 Settings.embed_model = local_embed_model
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -222,8 +222,7 @@ for idx, dev_item in enumerate(dev_items):
         ChatMessage(
             
             role= "system",
-            content= f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"
-        
+            content= f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"        
         ),
         ChatMessage(role= "user",
             content= 
@@ -342,5 +341,19 @@ if len(all_predictions) == len(all_groundtruths):
     
 else:
     print("ERROR: Length mismatch between predictions and ground truth!")
+results_table = []
+
+for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
+    results_table.append({
+        "Doc ID": dev_item.get("doc_id", idx),
+        "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
+        "Entity1": output["head"],
+        "Entity2": output["tail"],
+        "Predicate": output.get("prediction", ""),
+        "Ground Truth": all_groundtruths[idx]
+    })
+df = pd.DataFrame(results_table)
+df.to_excel('results_bws_ollama_table.xlsx', index=False)
+
 
 wandb.finish()

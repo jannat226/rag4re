@@ -104,16 +104,18 @@ print("this is dev items ", train_items)
 def prepare_documents(train_items):
     documents = []
     for idx, item in enumerate(train_items):
+        title = item["metadata"].get("title", "")
+        abstract = item["metadata"].get("abstract", "")
+        combined_text = title + "\n\n" + abstract  # Combine title and abstract with some separation
+
         documents.append(
             Document(
-                text=item["metadata"]["abstract"],
+                text=combined_text,
                 doc_id=str(idx),
-                # "entities": item["entities"],
-                metadata = { "relations":item["relations"]}
-
+                # metadata={"relations": item.get("relations", [])}  
             )
         )
-    print("documents are ",documents)
+    print("documents are ", documents)
     return documents
 
 # #Initialize vetcor store client

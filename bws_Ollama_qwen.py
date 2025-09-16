@@ -178,7 +178,7 @@ print(f"Nearest indices: {nearest_indices}")
 
 
 generation_model = Ollama(
-    model="qwen3:8b",
+    model="deepseek-r1:70b",
     request_timeout=300,
     context_window=8000,
 )
