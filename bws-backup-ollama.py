@@ -87,11 +87,12 @@ print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
 
-# dev_items = dev_items[:82]
+dev_items = dev_items[:82]
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
+dev_items = read_json(processed_train_file)
 train_items = read_json(processed_train_file)
 
-# train_items = train_items[:120]
+train_items = train_items[:120]
 
 
 
@@ -345,7 +346,7 @@ results_table = []
 
 for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     results_table.append({
-        "Doc ID": dev_item.get("doc_id", idx),
+        "Doc ID": dev_item.get("doc_id", idx), 
         "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
         "Entity1": output["head"],
         "Entity2": output["tail"],

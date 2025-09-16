@@ -9,4 +9,4 @@
 
 source thesis_env/bin/activate
 ollama run llama3.1
-python3 ollama-test.py
+ollama serve 
