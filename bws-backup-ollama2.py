@@ -345,7 +345,6 @@ results_table = []
 
 for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     results_table.append({
-        "Doc ID": dev_item.get("doc_id", idx),
         "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
         "Entity1": output["head"],
         "Entity2": output["tail"],
