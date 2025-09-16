@@ -87,11 +87,11 @@ print("Loading processed data...")
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
 
-dev_items = dev_items[:82]
+# dev_items = dev_items[:82]
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
 train_items = read_json(processed_train_file)
 
-train_items = train_items[:120]
+# train_items = train_items[:120]
 
 
 
