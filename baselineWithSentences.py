@@ -14,6 +14,7 @@ import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import qdrant_client
+import pandas as pd
 
 device = "cuda:0"
 
@@ -353,4 +354,16 @@ if len(all_predictions) == len(all_groundtruths):
 else:
     print("ERROR: Length mismatch between predictions and ground truth!")
 
+results_table=[]
+for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
+    results_table.append({
+        "Doc ID": dev_item.get("doc_id", idx),
+        "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
+        "Entity1": output["head"],
+        "Entity2": output["tail"],
+        "Predicate": output.get("prediction", ""),
+        "Ground Truth": all_groundtruths[idx]
+    })
+df = pd.DataFrame(results_table)
+df.to_excel('baselineWithSentences-table.csv', index=False)
 wandb.finish()

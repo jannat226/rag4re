@@ -15,11 +15,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-
-# from llama_index.embeddings.openai import OpenAIEmbedding
-
 import qdrant_client
 from sentence_transformers import SentenceTransformer
+import pandas as pd
 
 
 small_dev_data = '/home/lnuj3/thesis/dev5.json'
@@ -474,4 +472,17 @@ if len(all_predictions) == len(all_groundtruths):
     
 else:
     print("ERROR!")
+results_table = []
+for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
+    results_table.append({
+        "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
+        "Entity1": output["head"],
+        "Entity2": output["tail"],
+        "Predicate": output.get("prediction", ""),
+        "Ground Truth": all_groundtruths[idx]
+    })
+df = pd.DataFrame(results_table)
+df.to_excel('results_baselineWithLlama-backup_table.xlsx', index=False)
+
+
     

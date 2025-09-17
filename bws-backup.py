@@ -1,3 +1,4 @@
+# Corrected RAG4RE for new data structure
 from utils import read_json, write_json
 import torch
 import json
@@ -8,14 +9,11 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
-from llama_index.llms.ollama import Ollama
-from llama_index.core.llms import ChatMessage
 import numpy as np
 import asyncio
 import wandb
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import qdrant_client
-import pandas as pd
 
 device = "cuda:0"
 
@@ -88,10 +86,11 @@ processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
 dev_items = read_json(processed_dev_file)
 
 dev_items = dev_items[:82]
+
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
 train_items = read_json(processed_train_file)
 
-# train_items = train_items[:1200]
+train_items = train_items[:800]
 
 
 
@@ -144,7 +143,7 @@ dev_nodes = pipeline.run(documents=dev_documents)
 print(f"Created {len(train_nodes)} train nodes with embeddings")
 print(f"Created {len(dev_nodes)} dev nodes with embeddings")
 
-# Set up embedding model settings
+# Set up settings
 local_embed_model = HuggingFaceEmbedding(model_name="all-MiniLM-L6-v2")
 Settings.embed_model = local_embed_model
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -178,14 +177,9 @@ print(f"Nearest indices: {nearest_indices}")
 
 # Initialize tokenizer and model
 print("Loading tokenizer and model...")
-# tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-# generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
-# tokenizer.add_special_tokens({"pad_token": "[PAD]"})
-generation_model = Ollama(
-    model="llama3.1:latest",
-    request_timeout=300,
-    context_window=8000,
-)
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+generation_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", device_map=device)
+tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
 # Prepare relation types
 relation_types = list(set(valid_relations.values()))
@@ -219,32 +213,49 @@ for idx, dev_item in enumerate(dev_items):
     
     # Create messages
     messages = [
-        ChatMessage(
-            
-            role= "system",
-            content= f"Find the relationship between the entities, given the most relevant example , the entities in them and their relation.Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"        
-        ),
-        ChatMessage(role= "user",
-            content= 
+        {
+            "role": "system",
+            "content": f"Respond only with a valid JSON. Choose only one relation from this list: [{', '.join(relation_types)}]. Your response MUST be in the form: {{\"relation\": \"<relation_type>\"}}"
+        },
+        {
+            "role": "user",
+            "content": (
                 f"Relevant example: {retrieved_text}\n"
                 f"Example entities: {example_head}, {example_tail}\n"
                 f"Example relation: {example_relation}\n\n"
                 f"New sentence: {query_text}\n"
                 f"Entities: {head_entity}, {tail_entity}"
             )
-        ]
+        }
+    ]
     
     # Generate prediction
-    pred_text = generation_model.chat(messages)
+    inputs = tokenizer.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        tokenize=True,
+        padding=True,
+        return_attention_mask=True,
+        return_dict=True,
+        return_tensors="pt"
+    )
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    print("message is ", messages)
     
-
-    prediction_raw  = pred_text.message.content 
-    print("prediction_raw",prediction_raw)
-    # pred_text = text_response
-    # data = json.loads(pred_text)
-    # pred_text= data["relation"]
-
-
+    with torch.no_grad():
+        outputs_ids = generation_model.generate(
+            input_ids=inputs['input_ids'],
+            attention_mask=inputs['attention_mask'],
+            max_new_tokens=40,
+            do_sample=False,
+            pad_token_id=tokenizer.pad_token_id
+        )
+    
+    # Decode prediction
+    input_length = inputs['input_ids'].shape[-1]
+    generated_tokens = outputs_ids[0][input_length:]
+    prediction_raw = tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+    
     def normalize_prediction(pred_text):
         if not pred_text:
             return "unknown"
@@ -253,8 +264,8 @@ for idx, dev_item in enumerate(dev_items):
 
     prediction = "unknown"
     try:
-        prediction_json =  json.loads(prediction_raw)
-        raw_relation = prediction_json["relation"]
+        prediction_json = json.loads(prediction_raw)
+        raw_relation = prediction_json.get("relation", "")
         prediction = normalize_prediction(raw_relation)
         # print(f"From JSON: '{raw_relation}' -> '{prediction}'")
     except json.JSONDecodeError:
@@ -341,19 +352,3 @@ if len(all_predictions) == len(all_groundtruths):
     
 else:
     print("ERROR: Length mismatch between predictions and ground truth!")
-results_table = []
-
-for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
-    results_table.append({
-        "Doc ID": dev_item.get("doc_id", idx), 
-        "Abstract": dev_item.get("sample", "")[:100] + "...",  # Shorten abstract for readability
-        "Entity1": output["head"],
-        "Entity2": output["tail"],
-        "Predicate": output.get("prediction", ""),
-        "Ground Truth": all_groundtruths[idx]
-    })
-df = pd.DataFrame(results_table)
-df.to_excel('results_bws_ollama_table.xlsx', index=False)
-
-
-wandb.finish()
