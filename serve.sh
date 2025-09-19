@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=RAG4RE
+#SBATCH --job-name=serve_ollama
 #SBATCH --gres=gpu:40g:1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=2

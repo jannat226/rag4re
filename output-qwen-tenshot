@@ -1,0 +1,365 @@
+/home/lnuj3/thesis/thesis_env/lib/python3.12/site-packages/llama_index/vector_stores/qdrant/base.py:849: UserWarning: Payload indexes have no effect in the local Qdrant. Please use server Qdrant if you need payload indexes.
+  self._client.create_payload_index(
+Training items: 120
+Dev items: 82
+Dev item 1 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, implying a potential impact on the abundance of BrainBiota in the context of inflammation.
+---
+
+Dev item 2 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, while also mentioning that infectious agents are considered in the pathogenesis of neurological diseases. This implies a connection between BrainBiota and neurological diseases, suggesting they are linked.
+---
+
+Dev item 3 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, indicating a connection between the two entities.
+---
+
+Dev item 4 - Relation: compared to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, while also mentioning changes in gut microbiota diversity in neurological diseases. The comparison between BrainBiota and gut microbiota is implied by discussing their roles in inflammation and disease contexts.
+---
+
+Dev item 5 - Relation: located in
+Reasoning: The sentence mentions 'patients' in the context of having neurological diseases, implying that BrainBiota is located within these patients.
+---
+
+Dev item 6 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, and mentions that changes in gut microbiota are linked to neurological diseases, suggesting a connection between BrainBiota and neurological diseases through the gut-brain axis.
+---
+
+Dev item 7 - Relation: is linked to
+Reasoning: The sentence suggests a connection between BrainBiota and CNS autoimmune inflammation, and Parkinson's disease is mentioned as a neurological disease associated with changes in gut microbiota, which is linked to BrainBiota.
+---
+
+Dev item 8 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, and mentions that changes in gut microbiota diversity are linked to neurological diseases like Alzheimer disease, suggesting a connection between BrainBiota and Alzheimer disease through the gut-brain axis.
+---
+
+Dev item 9 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, and mentions that changes in gut microbiota are linked to neurological diseases like multiple sclerosis. This implies a connection between BrainBiota and multiple sclerosis through their shared involvement in CNS autoimmunity.
+---
+
+Dev item 10 - Relation: compared to
+Reasoning: The sentence discusses the hypothesis of a brain microbiota, referred to as BrainBiota, and presents it as a concept that is being compared to other potential microbiota or conditions. The entities 'BrainBiota' and 'brain microbiota' are treated as related but distinct terms, which aligns with the 'compared to' relation.
+---
+
+Dev item 11 - Relation: compared to
+Reasoning: The sentence discusses the hypothesis of BrainBiota, comparing it to other concepts like CNS autoimmune inflammation and brain microbiota.
+---
+
+Dev item 12 - Relation: located in
+Reasoning: The sentence mentions the existence of various bacteria in the human brain, which is directly related to the BrainBiota. Since BrainBiota refers to the collection of bacteria in the brain, it is logical to infer that BrainBiota is located in the human brain.
+---
+
+Dev item 13 - Relation: is linked to
+Reasoning: The sentence states that BrainBiota is 'directly linked to the gut microbiome', which explicitly indicates a direct connection or relationship between the two entities.
+---
+
+Dev item 14 - Relation: compared to
+Reasoning: The sentence discusses changes in BrainBiota during brain diseases and draws a parallel to the gut microbiota, indicating a comparison.
+---
+
+Dev item 15 - Relation: is linked to
+Reasoning: The sentence suggests a connection between changes in BrainBiota and brain diseases, indicating a link.
+---
+
+Dev item 16 - Relation: is linked to
+Reasoning: The sentence states that changes in BrainBiota may be the consequence or cause of chronic inflammation, indicating a direct association or link between the two entities.
+---
+
+Dev item 17 - Relation: compared to
+Reasoning: The sentence states that changes in BrainBiota during brain diseases are similar to those of the gut microbiota, indicating a comparison.
+---
+
+Dev item 18 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, implying that changes in BrainBiota may influence or be associated with CNS autoimmune inflammation, which aligns with the 'change abundance' relation.
+---
+
+Dev item 19 - Relation: is a
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its relation to CNS autoimmune inflammation, while also mentioning that infectious agents are involved in the pathogenesis of neurological diseases. Since CNS autoimmune inflammation is a type of neurological disease, the relation 'is a' is appropriate.
+---
+
+Dev item 20 - Relation: is a
+Reasoning: CNS autoimmune inflammation and CNS autoimmunity are essentially the same concept, with the latter being a more general term and the former a specific instance of the latter.
+---
+
+Dev item 21 - Relation: is linked to
+Reasoning: The sentence discusses the role of gut microbiota in CNS autoimmunity, indicating a connection between the two entities.
+---
+
+Dev item 22 - Relation: located in
+Reasoning: The sentence mentions 'patients with neurological diseases,' indicating that CNS autoimmune inflammation is located in or related to patients.
+---
+
+Dev item 23 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and mentions changes in gut microbiota diversity in patients with neurological diseases, suggesting a connection between CNS autoimmune inflammation and neurological diseases through the gut-brain axis.
+---
+
+Dev item 24 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and mentions changes in gut microbiota in patients with neurological diseases like Parkinson's disease. This implies a connection between CNS autoimmune inflammation and Parkinson's disease.
+---
+
+Dev item 25 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and mentions changes in gut microbiota in patients with neurological diseases like Alzheimer's, indicating a connection between CNS autoimmune inflammation and Alzheimer disease.
+---
+
+Dev item 26 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and mentions changes in gut microbiota in patients with multiple sclerosis. This implies a connection between CNS autoimmune inflammation and multiple sclerosis.
+---
+
+Dev item 27 - Relation: change abundance
+Reasoning: The sentence discusses the potential BrainBiota and its relation to CNS autoimmune inflammation, suggesting that changes in BrainBiota may be linked to CNS autoimmune inflammation. This implies that the brain microbiota (BrainBiota) could influence the abundance of factors related to CNS autoimmune inflammation.
+---
+
+Dev item 28 - Relation: change abundance
+Reasoning: The sentence discusses the potential BrainBiota and its relation to CNS autoimmune inflammation, suggesting that changes in BrainBiota may be linked to chronic inflammation, implying an impact on abundance.
+---
+
+Dev item 29 - Relation: strike
+Reasoning: The sentence discusses the existence of bacteria in the human brain and its relation to CNS autoimmune inflammation. The term 'strike' is used in previous examples to indicate a connection or impact between the two entities, suggesting that CNS autoimmune inflammation may be affected by the presence of bacteria in the human brain.
+---
+
+Dev item 30 - Relation: interact
+Reasoning: The sentence suggests a connection between bacterial proteins and CNS autoimmune inflammation, implying an interaction between them.
+---
+
+Dev item 31 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis that bacteria are linked to the gut microbiome and their role in immune tolerance, implying changes in abundance related to CNS autoimmune inflammation.
+---
+
+Dev item 32 - Relation: change abundance
+Reasoning: The sentence suggests that changes in BrainBiota during brain diseases may be the consequence or cause of chronic inflammation, indicating a relationship where the abundance of BrainBiota is altered, similar to the gut microbiota.
+---
+
+Dev item 33 - Relation: is a
+Reasoning: The sentence suggests that CNS autoimmune inflammation is a type of inflammation related to brain diseases.
+---
+
+Dev item 34 - Relation: is a
+Reasoning: CNS autoimmune inflammation is a type of chronic inflammation.
+---
+
+Dev item 35 - Relation: change abundance
+Reasoning: The sentence suggests that changes in the BrainBiota are related to chronic inflammation similarly to the gut microbiota, implying that changes in the gut microbiota also affect abundance.
+---
+
+Dev item 36 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of BrainBiota in relation to CNS autoimmune inflammation, suggesting a connection between neurological diseases and BrainBiota.
+---
+
+Dev item 37 - Relation: is a
+Reasoning: The sentence discusses the hypothesis of BrainBiota's relation to CNS autoimmune inflammation, and neurological diseases are mentioned in the same context as part of the interaction involving genetic susceptibility and the environment, suggesting a classification relationship.
+---
+
+Dev item 38 - Relation: is a
+Reasoning: CNS autoimmunity is a type of neurological disease.
+---
+
+Dev item 39 - Relation: is linked to
+Reasoning: The sentence mentions that changes in the diversity of gut microbiota are associated with neurological diseases, indicating a link between them.
+---
+
+Dev item 40 - Relation: target
+Reasoning: The sentence mentions that changes in gut microbiota are observed in patients with neurological diseases, indicating that patients are the target group affected by these changes.
+---
+
+Dev item 41 - Relation: is a
+Reasoning: The entities are the same, indicating a categorical relationship where neurological diseases are a category that includes specific diseases like Parkinson's and Alzheimer's.
+---
+
+Dev item 42 - Relation: is a
+Reasoning: Parkinson's disease is a specific type of neurological disease.
+---
+
+Dev item 43 - Relation: is a
+Reasoning: Alzheimer disease is a specific type of neurological disease.
+---
+
+Dev item 44 - Relation: is a
+Reasoning: Multiple sclerosis is a specific type of neurological disease.
+---
+
+Dev item 45 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis of a brain microbiota (BrainBiota) and its role in neurological diseases. The mention of changes in BrainBiota during brain diseases in similar contexts (as seen in example 3) suggests that the brain microbiota may influence neurological diseases through changes in abundance.
+---
+
+Dev item 46 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis of BrainBiota and its potential role in neurological diseases, implying that changes in BrainBiota abundance may be involved in disease pathogenesis.
+---
+
+Dev item 47 - Relation: strike
+Reasoning: The sentence mentions the existence of various bacteria in the human brain, suggesting that infectious agents may be involved in neurological diseases. This implies an impact or influence of these agents on the brain, which aligns with the 'strike' relation.
+---
+
+Dev item 48 - Relation: interact
+Reasoning: The sentence mentions that infectious agents play a role in the pathogenesis of neurological diseases as part of the interaction between genetic susceptibility and the environment. The presence of bacterial proteins in the human brain suggests an interaction between these bacteria and the neurological system, leading to the disease.
+---
+
+Dev item 49 - Relation: change abundance
+Reasoning: The sentence discusses the hypothesis that bacteria are directly linked to the gut microbiome and play a role in neurological diseases, suggesting that changes in the gut microbiome may affect neurological diseases.
+---
+
+Dev item 50 - Relation: change abundance
+Reasoning: The sentence mentions changes of the BrainBiota during brain diseases, implying a change in its abundance.
+---
+
+Dev item 51 - Relation: is a
+Reasoning: The sentence discusses neurological diseases and brain diseases, and the context implies that brain diseases are a subset or type of neurological diseases.
+---
+
+Dev item 52 - Relation: is a
+Reasoning: The sentence discusses how changes in BrainBiota during brain diseases may be the consequence or cause of chronic inflammation, similar to the gut microbiota. The term 'chronic inflammation' is presented as a result or consequence of the changes in BrainBiota, indicating that chronic inflammation is a type of condition or result of the brain diseases.
+---
+
+Dev item 53 - Relation: change abundance
+Reasoning: The sentence suggests that changes in the BrainBiota during brain diseases may be linked to chronic inflammation, similar to the gut microbiota. This implies that the gut microbiota's abundance changes in a similar way, hence 'change abundance'.
+---
+
+Dev item 54 - Relation: is linked to
+Reasoning: The sentence discusses the hypothesis of a potential BrainBiota and its relation to CNS autoimmune inflammation, indicating a connection between the two entities.
+---
+
+Dev item 55 - Relation: is a
+Reasoning: CNS autoimmunity and CNS autoimmune inflammation are closely related, with the latter being a specific type of inflammation resulting from the former.
+---
+
+Dev item 56 - Relation: is a
+Reasoning: The sentence discusses CNS autoimmunity as a type of neurological disease, indicating a hierarchical relationship where CNS autoimmunity is a subset of neurological diseases.
+---
+
+Dev item 57 - Relation: is linked to
+Reasoning: The sentence states that changes in the diversity of gut microbiota are linked to CNS autoimmunity, indicating a relationship between the two entities.
+---
+
+Dev item 58 - Relation: located in
+Reasoning: The sentence mentions that changes in gut microbiota are observed in patients with neurological diseases, implying that the patients are the location where these changes occur.
+---
+
+Dev item 59 - Relation: is linked to
+Reasoning: The sentence states that changes in gut microbiota diversity in patients with neurological diseases are linked to CNS autoimmunity, implying a connection between the two entities.
+---
+
+Dev item 60 - Relation: is linked to
+Reasoning: CNS autoimmunity is linked to Parkinson's disease as the sentence mentions that changes in gut microbiota in patients with neurological diseases (including Parkinson's disease) are associated with CNS autoimmunity.
+---
+
+Dev item 61 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and highlights changes in gut microbiota in patients with neurological diseases, including Alzheimer's disease. This suggests a connection between CNS autoimmunity and Alzheimer's disease.
+---
+
+Dev item 62 - Relation: is linked to
+Reasoning: CNS autoimmunity is associated with multiple sclerosis as the sentence discusses the role of bacteria in CNS autoimmunity in the context of neurological diseases like multiple sclerosis.
+---
+
+Dev item 63 - Relation: change abundance
+Reasoning: The sentence mentions changes in the diversity of gut microbiota in patients with neurological diseases, which implies a change in abundance of gut microbiota. Since brain microbiota is discussed in the context of the BrainBiota, it may be inferred that changes in brain microbiota are also related to CNS autoimmunity.
+---
+
+Dev item 64 - Relation: change abundance
+wandb: Currently logged in as: lnuj3 (charliedil-virginia-commonwealth-university) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.21.1
+wandb: Run data is saved locally in /home/lnuj3/thesis/wandb/run-20250918_195033-hnbg2byl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run RAG4RE_10shot_RAG
+wandb: ⭐️ View project at https://wandb.ai/charliedil-virginia-commonwealth-university/relation-extraction
+wandb: 🚀 View run at https://wandb.ai/charliedil-virginia-commonwealth-university/relation-extraction/runs/hnbg2byl
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb:    eval/accuracy ▁
+wandb: eval/f1_weighted ▁
+wandb:   eval/precision ▁
+wandb:      eval/recall ▁
+wandb: 
+wandb: Run summary:
+wandb:    eval/accuracy 0.78049
+wandb: eval/f1_weighted 0.79125
+wandb:   eval/precision 0.8718
+wandb:      eval/recall 0.78049
+wandb: 
+wandb: 🚀 View run RAG4RE_10shot_RAG at: https://wandb.ai/charliedil-virginia-commonwealth-university/relation-extraction/runs/hnbg2byl
+wandb: ⭐️ View project at: https://wandb.ai/charliedil-virginia-commonwealth-university/relation-extraction
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250918_195033-hnbg2byl/logs
+Reasoning: The sentence mentions changes in the diversity of gut microbiota in patients with neurological diseases, which is linked to CNS autoimmunity. The BrainBiota is introduced as a hypothesis related to the gut-brain axis, suggesting a potential change in abundance of brain microbiota similar to gut microbiota changes.
+---
+
+Dev item 65 - Relation: strike
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and mentions the existence of various bacteria in the human brain. The term 'strike' is used in previous examples to indicate the impact or influence of one entity on another, which fits here as the presence of bacteria in the brain may impact CNS autoimmunity.
+---
+
+Dev item 66 - Relation: interact
+Reasoning: The sentence suggests that bacterial proteins are present in the human brain, which implies an interaction between bacteria and the brain's environment, potentially influencing CNS autoimmunity.
+---
+
+Dev item 67 - Relation: change abundance
+Reasoning: The sentence discusses changes in the diversity of gut microbiota in patients with neurological diseases, which is linked to CNS autoimmunity. This indicates a change in the abundance of gut microbiota affecting CNS autoimmunity.
+---
+
+Dev item 68 - Relation: is linked to
+Reasoning: The sentence suggests a connection between BrainBiota changes and CNS autoimmunity, indicating a relationship.
+---
+
+Dev item 69 - Relation: is a
+Reasoning: The sentence suggests that changes in BrainBiota during brain diseases may be related to chronic inflammation, similar to gut microbiota changes. However, the entities here are CNS autoimmunity and brain diseases. Since CNS autoimmunity is a type of brain disease, the relation is 'is a'.
+---
+
+Dev item 70 - Relation: is a
+Reasoning: The sentence suggests that chronic inflammation may be a consequence or cause of changes in BrainBiota during brain diseases, similar to how gut microbiota changes relate to CNS autoimmunity. This implies that chronic inflammation is a type of condition that can be influenced by these changes, hence 'is a'.
+---
+
+Dev item 71 - Relation: change abundance
+Reasoning: The sentence mentions changes in the diversity of gut microbiota in patients with neurological diseases, which directly relates to the 'change abundance' relation between CNS autoimmunity and gut microbiota.
+---
+
+Dev item 72 - Relation: compared to
+Reasoning: The sentence discusses the role of gut microbiota and introduces the hypothesis of BrainBiota in relation to CNS autoimmune inflammation, suggesting a comparison between these two entities.
+---
+
+Dev item 73 - Relation: is linked to
+Reasoning: The sentence discusses the role of gut microbiota in CNS autoimmunity and mentions the hypothesis of BrainBiota's relation to CNS autoimmune inflammation, indicating a connection between the two entities.
+---
+
+Dev item 74 - Relation: is linked to
+Reasoning: The sentence mentions that changes in the diversity of gut microbiota are associated with neurological diseases, indicating a connection or link between them.
+---
+
+Dev item 75 - Relation: is linked to
+Reasoning: The sentence discusses the role of bacteria in CNS autoimmunity and highlights changes in gut microbiota diversity in patients with neurological diseases. This indicates a connection between gut microbiota and CNS autoimmunity.
+---
+
+Dev item 76 - Relation: located in
+Reasoning: The sentence mentions that changes in the diversity of gut microbiota are observed in patients with neurological diseases. This implies that the gut microbiota is located within the patients.
+---
+
+Dev item 77 - Relation: is linked to
+Reasoning: The sentence suggests a connection between the diversity of gut microbiota and neurological diseases, indicating a relationship.
+---
+
+Dev item 78 - Relation: is linked to
+Reasoning: The gut microbiota is linked to Parkinson's disease as the sentence mentions changes in gut microbiota diversity in patients with neurological diseases including Parkinson's disease.
+---
+
+Dev item 79 - Relation: is linked to
+Reasoning: The sentence states that changes in the diversity of gut microbiota are linked to neurological diseases, including Alzheimer's disease.
+---
+
+Dev item 80 - Relation: is linked to
+Reasoning: The sentence indicates that changes in gut microbiota diversity are associated with neurological diseases like multiple sclerosis, suggesting a link between gut microbiota and multiple sclerosis.
+---
+
+Dev item 81 - Relation: compared to
+Reasoning: The sentence discusses changes in the diversity of gut microbiota and introduces the hypothesis of a brain microbiota (BrainBiota). The comparison between the gut microbiota and brain microbiota is implied through the discussion of their respective roles and changes in diversity.
+---
+
+Dev item 82 - Relation: compared to
+Reasoning: The sentence discusses changes in the diversity of gut microbiota and introduces the BrainBiota as a hypothesis. The comparison between gut microbiota and BrainBiota is implied by the context of discussing their roles in CNS autoimmunity and neurological diseases.
+---
+
+
+Evaluation RESULTS for 10-shot + RAG prompting:
+Accuracy: 0.7805
+Precision: 0.8718
+Recall: 0.7805
+F1: 0.7912
+Exact matches: 64 out of 82
+Saved detailed results to relation_extraction_results_10shot_rag.xlsx
