@@ -93,9 +93,9 @@ valid_relations = {
 
 # Load data
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
-dev_items = read_json(processed_dev_file)[:4430]
+dev_items = read_json(processed_dev_file)[:82]
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
-train_items = read_json(processed_train_file)
+train_items = read_json(processed_train_file)[:120]
 
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
@@ -161,8 +161,8 @@ for idx, dev_item in enumerate(dev_items):
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
 
-    # Retrieve top 10 similar train nodes for few-shot examples
-    retriever = index.as_retriever(similarity_top_k=10)
+    # Retrieve top 5 similar train nodes for few-shot examples
+    retriever = index.as_retriever(similarity_top_k=5)
     retrieved_nodes = retriever.retrieve(query_text)
 
     # Format few-shot examples for prompt
@@ -240,11 +240,11 @@ for idx, dev_item in enumerate(dev_items):
     print("the number of match are", match_count)
 
 # Save predictions to JSON file
-with open('rag4re_predictions_10shot_rag_midSizeData.json', 'w') as out_f:
+with open('rag4re_predictions_5shot_rag_midSizeData.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
 # Evaluation
-wandb.init(project="relation-extraction", name="RAG4RE_10shot_RAG_completeData")
+wandb.init(project="relation-extraction", name="RAG4RE_5shot_RAG_completeData")
 
 all_predictions = [o["prediction"] for o in outputs]
 all_groundtruths = [
@@ -254,7 +254,7 @@ all_groundtruths = [
 accuracy = accuracy_score(all_groundtruths, all_predictions)
 precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
 
-print(f"\nEvaluation RESULTS for 10-shot + RAG prompting:")
+print(f"\nEvaluation RESULTS for 5-shot + RAG prompting:")
 print(f"Accuracy: {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
@@ -286,7 +286,7 @@ for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     })
 
 df = pd.DataFrame(results_table)
-excel_filename = 'relation_extraction_results_10shot_rag_midSizeData.xlsx'
+excel_filename = 'relation_extraction_results_5shot_rag_midSizeData.xlsx'
 df.to_excel(excel_filename, index=False)
 
 print(f"Saved detailed results to {excel_filename}")
