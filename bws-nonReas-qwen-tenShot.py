@@ -93,9 +93,9 @@ valid_relations = {
 
 # Load data
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
-dev_items = read_json(processed_dev_file)
+dev_items = read_json(processed_dev_file)[:82]
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
-train_items = read_json(processed_train_file)
+train_items = read_json(processed_train_file)[:120]
 
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
@@ -154,7 +154,7 @@ generation_model = Ollama(
 
 relation_types = list(set(valid_relations.values()))
 outputs = []
-match_count = 0
+
 # For each dev item:
 for idx, dev_item in enumerate(dev_items):
     query_text = dev_item["sample"]
@@ -199,6 +199,7 @@ for idx, dev_item in enumerate(dev_items):
         ),
         ChatMessage(role="user", content=user_prompt),
     ]
+    
 
     pred_text = generation_model.chat(messages, format=RelationWithReasoning.model_json_schema())
 
@@ -220,31 +221,16 @@ for idx, dev_item in enumerate(dev_items):
         "reasoning": reasoning,
         "ground_prediction": valid_relations.get((dev_item["subject_label"], dev_item["object_label"]), 'None')
     })
-   
-
 
     print(f"Dev item {idx + 1} - Relation: {relation}")
     print(f"Reasoning: {reasoning}\n---\n")
-    print(
-        f"head: {head_entity}\n"
-        f"tail: {tail_entity}\n"
-        f"subject_label: {dev_item['subject_label']}\n"
-        f"object_label: {dev_item['object_label']}\n"
-        f"prediction: {relation}\n"
-       
-        f"ground_prediction: {valid_relations.get((dev_item['subject_label'], dev_item['object_label']), 'None')}\n"
-    )
-    ground_truth = valid_relations.get((dev_item["subject_label"], dev_item["object_label"]), 'None')
-    if relation == ground_truth:
-        match_count += 1
-    print("the number of match are", match_count)
 
 # Save predictions to JSON file
-with open('rag4re_predictions_10shot_rag_midSizeData-[4430:8860].json', 'w') as out_f:
+with open('rag4re_predictions_10shot_rag.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
 # Evaluation
-wandb.init(project="relation-extraction", name="RAG4RE_10shot_RAG_completeData_[4430:8860]")
+wandb.init(project="relation-extraction", name="RAG4RE_10shot_RAG")
 
 all_predictions = [o["prediction"] for o in outputs]
 all_groundtruths = [
@@ -286,7 +272,7 @@ for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     })
 
 df = pd.DataFrame(results_table)
-excel_filename = 'relation_extraction_results_10shot_rag_midSizeData-[4430:8860].xlsx'
+excel_filename = 'relation_extraction_results_10shot_rag.xlsx'
 df.to_excel(excel_filename, index=False)
 
 print(f"Saved detailed results to {excel_filename}")

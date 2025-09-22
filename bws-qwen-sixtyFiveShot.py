@@ -93,9 +93,9 @@ valid_relations = {
 
 # Load data
 processed_dev_file = '/home/lnuj3/thesis/processed_test.json'
-dev_items = read_json(processed_dev_file)
+dev_items = read_json(processed_dev_file)[:82]
 processed_train_file = '/home/lnuj3/thesis/processed_train.json'
-train_items = read_json(processed_train_file)
+train_items = read_json(processed_train_file)[:120]
 
 print(f"Training items: {len(train_items)}")
 print(f"Dev items: {len(dev_items)}")
@@ -129,7 +129,7 @@ vector_store = QdrantVectorStore(client=client, collection_name="rag4re_store")
 # Pipeline
 pipeline = IngestionPipeline(
     transformations=[
-        SentenceSplitter(chunk_size=4000, chunk_overlap=50),
+        SentenceSplitter(chunk_size=4000, chunk_overlap=65),
         HuggingFaceEmbedding(model_name="all-MiniLM-L6-v2"),
     ],
     vector_store=vector_store,
@@ -161,8 +161,8 @@ for idx, dev_item in enumerate(dev_items):
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
 
-    # Retrieve top 10 similar train nodes for few-shot examples
-    retriever = index.as_retriever(similarity_top_k=10)
+    # Retrieve top 65 similar train nodes for few-shot examples
+    retriever = index.as_retriever(similarity_top_k=65)
     retrieved_nodes = retriever.retrieve(query_text)
 
     # Format few-shot examples for prompt
@@ -240,11 +240,11 @@ for idx, dev_item in enumerate(dev_items):
     print("the number of match are", match_count)
 
 # Save predictions to JSON file
-with open('rag4re_predictions_10shot_rag_midSizeData-[4430:8860].json', 'w') as out_f:
+with open('rag4re_predictions_65shot_rag_midSizeData.json', 'w') as out_f:
     json.dump(outputs, out_f, indent=2)
 
 # Evaluation
-wandb.init(project="relation-extraction", name="RAG4RE_10shot_RAG_completeData_[4430:8860]")
+wandb.init(project="relation-extraction", name="RAG4RE_65shot_RAG_completeData")
 
 all_predictions = [o["prediction"] for o in outputs]
 all_groundtruths = [
@@ -254,7 +254,7 @@ all_groundtruths = [
 accuracy = accuracy_score(all_groundtruths, all_predictions)
 precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
 
-print(f"\nEvaluation RESULTS for 10-shot + RAG prompting:")
+print(f"\nEvaluation RESULTS for 65-shot + RAG prompting:")
 print(f"Accuracy: {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
@@ -286,7 +286,7 @@ for idx, (dev_item, output) in enumerate(zip(dev_items, outputs)):
     })
 
 df = pd.DataFrame(results_table)
-excel_filename = 'relation_extraction_results_10shot_rag_midSizeData-[4430:8860].xlsx'
+excel_filename = 'relation_extraction_results_65shot_rag_midSizeData.xlsx'
 df.to_excel(excel_filename, index=False)
 
 print(f"Saved detailed results to {excel_filename}")
