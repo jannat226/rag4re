@@ -23,16 +23,6 @@ import pandas as pd
 device = "cuda:0"
 import os
 
-checkpoint_path = 'rag4re_predictions_checkpoint.json'
-outputs = []
-done_indices = set()
-if os.path.exists(checkpoint_path):
-    with open(checkpoint_path, 'r') as ckpt_f:
-        outputs = json.load(ckpt_f)
-        done_indices = {o.get('dev_idx', i) for i, o in enumerate(outputs)}
-else:
-    outputs = []
-
 class RelationWithReasoning(BaseModel):
     relation: str
     reasoning: str
@@ -134,12 +124,10 @@ train_documents = prepare_documents(train_items)
 dev_documents = prepare_documents(dev_items)
 
 # Initialize vector store with in-memory client
-
 client = qdrant_client.QdrantClient(location=":memory:")
 vector_store = QdrantVectorStore(client=client, collection_name="rag4re_store")
 
 # Pipeline
-
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(chunk_size=4000, chunk_overlap=50),
@@ -166,11 +154,10 @@ generation_model = Ollama(
 )
 
 relation_types = list(set(valid_relations.values()))
+outputs = []
 match_count = 0
 # For each dev item:
 for idx, dev_item in enumerate(dev_items):
-    if idx in done_indices:
-        continue 
     query_text = dev_item["sample"]
     head_entity = dev_item["subject"]
     tail_entity = dev_item["object"]
@@ -226,7 +213,6 @@ for idx, dev_item in enumerate(dev_items):
         reasoning = ""
 
     outputs.append({
-        "dev_idx": idx,
         "head": head_entity,
         "tail": tail_entity,
         "subject_label": dev_item["subject_label"],
@@ -235,9 +221,6 @@ for idx, dev_item in enumerate(dev_items):
         "reasoning": reasoning,
         "ground_prediction": valid_relations.get((dev_item["subject_label"], dev_item["object_label"]), 'None')
     })
-    if (len(outputs) % 100 == 0) or (idx == len(dev_items) - 1):
-        with open(checkpoint_path, 'w') as ckpt_f:
-            json.dump(outputs, ckpt_f, indent=2)
    
 
 
