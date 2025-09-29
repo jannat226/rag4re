@@ -37,7 +37,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_non_reasoning_checkpoint.json'
+    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -47,9 +47,8 @@ if __name__ == "__main__":
     else:
         outputs = []
 
-    class RelationWithReasoning(BaseModel):
+    class RelationNoReasoning(BaseModel):
         relation: str
-        reasoning: str
 
 
     # valid_relations dictionary
@@ -174,7 +173,7 @@ if __name__ == "__main__":
         request_timeout=300,
         context_window=8000,
     )
-   
+
     relation_types = list(set(valid_relations.values()))
     match_count = 0
     # for each dev item:
@@ -205,12 +204,15 @@ if __name__ == "__main__":
         few_shot_prompt = "\n---\n".join(few_shot_examples)
 
         # full user prompt with retrieved shots + query
+        
         user_prompt = (
             f"{few_shot_prompt}\n---\n"
             f"New sentence: {query_text}\n"
             f"Entities: {head_entity}, {tail_entity}\n"
-            "Respond only with a valid JSON in the form {\"relation\": \"<relation>\", \"reasoning\": \"<explanation>\"}."
+            "Respond only with a valid JSON in the form {\"relation\": \"<relation>\"}.\n"
+            "Do not include any reasoning or explanation in the response."
         )
+
 
         messages = [
             ChatMessage(
@@ -218,31 +220,42 @@ if __name__ == "__main__":
                 content=(
                     f"You are an expert relation extractor. Choose one relation from this list: "
                     f"[{', '.join(relation_types)}]. "
-                    "Please provide the relation and reasoning in a JSON object."
+                    "Please provide the relation in a JSON object. /no_think"
                 )
             ),
-            ChatMessage(role="user", content=user_prompt),
+
+            ChatMessage(
+                role="user",
+                content="/nothink " + user_prompt
+            )
+            ,
         ]
-        tokenizer = AutoTokenizer.from_pretrained(generation_model)
-        text = tokenizer.apply_chat_template(
+        
+       
+        pred_text = generation_model.chat(
             messages,
-            tokenize=False,
-            add_generation_prompt=True,
-            enable_thinking=False  # True is the default value for enable_thinking.
+            format=RelationNoReasoning.model_json_schema(),
+            think=False
         )
-      
 
-        pred_text = generation_model.chat(messages, format=RelationWithReasoning.model_json_schema())
+       
+            
+        print("Model raw output:")
+        print(pred_text.message.content)
 
+        # Then parse as usual if needed
         try:
-            prediction_obj = RelationWithReasoning.model_validate_json(pred_text.message.content)
+            prediction_obj = RelationNoReasoning.model_validate_json(pred_text.message.content)
             relation = prediction_obj.relation
-            reasoning = prediction_obj.reasoning
+            reasoning = ""  # Reasoning expected to be empty in non-reasoning mode
+
         except Exception as e:
-            print(f"Failed to parse structured output for dev item {idx + 1}: {e}")
+            print(f"Failed to parse structured output: {e}")
             relation = "unknown"
             reasoning = ""
 
+        print("Parsed relation:", relation)
+        print("Reasoning (should be empty or minimal):", reasoning)
         outputs.append({
             "dev_idx": idx,
             "head": head_entity,
@@ -276,11 +289,11 @@ if __name__ == "__main__":
         print("the number of match are", match_count)
 
     # Save predictions to JSON file
-    with open(f'rag4re_predictions_{num_shots}shot_rag__non_reasoning.json', 'w') as out_f:
+    with open(f'rag4re_predictions_{num_shots}shot_rag_midSizeData-nonReasoning_Qwen_.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     # Evaluation
-    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_RAG__non_reasoning")
+    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_RAG_completeData_nonReasoning_Qwen")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -322,7 +335,7 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_{num_shots}shot_rag__non_reasoning.xlsx'
+    excel_filename = f'relation_extraction_results_{num_shots}shot_rag_midSizeData_nonReasoning_Qwen_.xlsx'
     df.to_excel(excel_filename, index=False)
 
     print(f"Saved detailed results to {excel_filename}")

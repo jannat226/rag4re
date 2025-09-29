@@ -11,7 +11,7 @@
 source thesis_env/bin/activate
 
 
-python3 bws_re_non_reas.py \
+python3 bws_re_non_reasoning.py \
     --train_file /home/lnuj3/thesis/processed_train.json \
     --dev_file /home/lnuj3/thesis/processed_test.json \
     --num_shots 10
