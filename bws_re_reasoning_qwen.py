@@ -19,6 +19,8 @@ import re
 from pydantic import BaseModel
 import pandas as pd
 import argparse
+import wandb
+from sklearn.preprocessing import LabelEncoder
 
 device = "cuda:0"
 import os
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_gemma_checkpoint.json'
+    checkpoint_path = 'rag4re_predictions_checkpoint_matrix.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -117,8 +119,8 @@ if __name__ == "__main__":
     }
 
     # load data
-    train_items = read_json(processed_train_file)
-    dev_items = read_json(processed_dev_file)
+    train_items = read_json(processed_train_file)[1:10]
+    dev_items = read_json(processed_dev_file)[1:10]
 
     print(f"Training items: {len(train_items)}")
     print(f"Dev items: {len(dev_items)}")
@@ -170,7 +172,7 @@ if __name__ == "__main__":
 
     # initialize Ollama LLM
     generation_model = Ollama(
-        model="gemma3:12b",
+        model="qwen3:14b",
         request_timeout=300,
         context_window=8000,
     )
@@ -268,11 +270,11 @@ if __name__ == "__main__":
         print("the number of match are", match_count)
 
     # Save predictions to JSON file
-    with open(f'rag4re_predictions_{num_shots}shot_gemma.json', 'w') as out_f:
+    with open(f'rag4re_predictions_{num_shots}shot_rag_midSizeData-[4430:8860].json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     # Evaluation
-    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_gemma")
+    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_RAG_completeData_[4430:8860]")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -314,7 +316,37 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_{num_shots}shot_gemma.xlsx'
+    excel_filename = f'relation_extraction_results_{num_shots}shot_rag_midSizeData-[4430:8860].xlsx'
     df.to_excel(excel_filename, index=False)
 
     print(f"Saved detailed results to {excel_filename}")
+    # initialize wandb run once
+    wandb.init(project="relation-extraction", name=f"RAG4RE_{num_shots}shot_RAG_completeData_[4430:8860]")
+
+    # log scalar metrics
+    wandb.log({
+        "eval/accuracy": accuracy,
+        "eval/precision": precision,
+        "eval/recall": recall,
+        "eval/f1_weighted": f1
+    })
+
+    # prepare confusion matrix data
+    all_predictions = [o["prediction"] for o in outputs]
+    all_groundtruths = [o["ground_prediction"] for o in outputs]
+    label_encoder = LabelEncoder()
+    label_encoder.fit(relation_types)
+    y_pred = label_encoder.transform(all_predictions)
+    y_true = label_encoder.transform(all_groundtruths)
+
+    # create and log confusion matrix plot
+    conf_matrix = wandb.plot.confusion_matrix(
+        preds=y_pred,
+        y_true=y_true,
+        class_names=list(label_encoder.classes_),
+        title="Relation Extraction Confusion Matrix"
+    )
+    wandb.log({"confusion_matrix": conf_matrix})
+
+    # finish wandb run
+    wandb.finish()

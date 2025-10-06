@@ -19,6 +19,9 @@ import re
 from pydantic import BaseModel
 import pandas as pd
 import argparse
+import wandb
+import pandas as pd
+from sklearn.metrics import confusion_matrix
 
 device = "cuda:0"
 import os
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_checkpoint.json'
+    checkpoint_path = 'rag4re_predictions_gemma_checkpoint.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -170,7 +173,7 @@ if __name__ == "__main__":
 
     # initialize Ollama LLM
     generation_model = Ollama(
-        model="qwen3:14b",
+        model="gemma3:12b",
         request_timeout=300,
         context_window=8000,
     )
@@ -268,11 +271,11 @@ if __name__ == "__main__":
         print("the number of match are", match_count)
 
     # Save predictions to JSON file
-    with open(f'rag4re_predictions_{num_shots}shot_rag_midSizeData-[4430:8860].json', 'w') as out_f:
+    with open(f'rag4re_predictions_{num_shots}shot_gemma.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     # Evaluation
-    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_RAG_completeData_[4430:8860]")
+    wandb.init(project="relation-extraction", name="RAG4RE_{num_shots}shot_gemma")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -281,7 +284,7 @@ if __name__ == "__main__":
 
     accuracy = accuracy_score(all_groundtruths, all_predictions)
     precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
-
+    
     print(f"\nEvaluation RESULTS for {num_shots}-shot + RAG prompting:")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
@@ -298,7 +301,7 @@ if __name__ == "__main__":
     total = len(all_predictions)
     print(f"Exact matches: {matches} out of {total}")
 
-    wandb.finish()
+    
 
     results_table = []
 
@@ -314,7 +317,19 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_{num_shots}shot_rag_midSizeData-[4430:8860].xlsx'
+    excel_filename = f'relation_extraction_results_{num_shots}shot_gemma.xlsx'
     df.to_excel(excel_filename, index=False)
 
     print(f"Saved detailed results to {excel_filename}")
+    
+    relation_labels = sorted(list(set(all_groundtruths + all_predictions)))
+    cm = confusion_matrix(all_groundtruths, all_predictions, labels=relation_labels)
+
+    # Convert to DataFrame for readability
+    df_cm = pd.DataFrame(cm, index= relation_labels, columns=relation_labels)
+
+    # Log the numeric confusion matrix as a wandb Table
+    conf_table = wandb.Table(dataframe=df_cm)
+
+    wandb.log({"confusion_matrix_table_gemma": conf_table})
+    wandb.finish()
