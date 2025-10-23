@@ -9,7 +9,7 @@
 
 source thesis_env/bin/activate
 
-python3 bws_re_qwen.py \
+python3 bws_re_reasoning_qwen.py \
     --train_file /home/lnuj3/thesis/processed_train.json \
     --dev_file /home/lnuj3/thesis/processed_test.json \
     --num_shots 10

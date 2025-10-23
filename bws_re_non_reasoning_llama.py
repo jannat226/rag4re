@@ -1,6 +1,5 @@
 from utils import read_json, write_json
-import torch
-import json
+import torch, torchmetrics, json, ijson, wandb
 from llama_index.core import Document, VectorStoreIndex, StorageContext, Settings
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
 from llama_index.core.ingestion import IngestionPipeline
@@ -10,17 +9,23 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from transformers import BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
 from llama_index.llms.ollama import Ollama
 from llama_index.core.llms import ChatMessage
+from llama_index.core import Document
 import numpy as np
-import wandb
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, ConfusionMatrixDisplay
 import qdrant_client
 import pandas as pd
 import re
 from pydantic import BaseModel
 import pandas as pd
 import argparse
-import wandb
-from sklearn.preprocessing import LabelEncoder
+from PIL import Image 
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+import io
+
 
 device = "cuda:0"
 import os
@@ -32,6 +37,9 @@ def parse_args():
     parser.add_argument("--num_shots", type=int, default=10, help="Number of few-shot examples")
     return parser.parse_args()
 
+
+def normalize_label(label):
+    return str(label).strip().lower()
 
 if __name__ == "__main__":
     args = parse_args()
@@ -119,8 +127,11 @@ if __name__ == "__main__":
     }
 
     # load data
-    train_items = read_json(processed_train_file)[1:10]
-    dev_items = read_json(processed_dev_file)[1:10]
+    with open(processed_train_file, 'r') as f:
+        train_items = json.load(f)
+
+    with open(processed_dev_file, 'r') as f:
+        dev_items = json.load(f)
 
     print(f"Training items: {len(train_items)}")
     print(f"Dev items: {len(dev_items)}")
@@ -173,7 +184,7 @@ if __name__ == "__main__":
     # initialize Ollama LLM
     generation_model = Ollama(
         model="llama3.1:latest",
-        request_timeout=300,
+        request_timeout=600,
         context_window=8000,
     )
 
@@ -247,12 +258,11 @@ if __name__ == "__main__":
             "reasoning": reasoning,
             "ground_prediction": valid_relations.get((dev_item["subject_label"], dev_item["object_label"]), 'None')
         })
+        
         if (len(outputs) % 100 == 0) or (idx == len(dev_items) - 1):
             with open(checkpoint_path, 'w') as ckpt_f:
                 json.dump(outputs, ckpt_f, indent=2)
     
-
-
         print(f"Dev item {idx + 1} - Relation: {relation}")
         print(f"Reasoning: {reasoning}\n---\n")
         print(
@@ -269,38 +279,46 @@ if __name__ == "__main__":
             match_count += 1
         print("the number of match are", match_count)
 
-    # Save predictions to JSON file
-    with open(f'rag4re_predictions_llama_{num_shots}shot_rag.json', 'w') as out_f:
+    with open(f'rag4re_predictions_{num_shots}shot_llama.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
-    # Evaluation
-    wandb.init(project="relation-extraction", name="RAG4RE_llama_{num_shots}shot_rag.")
+    
+    wandb.init(project="relation-extraction", name="RAG4RE_10_shot_llama")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
         valid_relations.get((item["subject_label"], item["object_label"]), 'related_to').lower() for item in dev_items
     ]
 
-    accuracy = accuracy_score(all_groundtruths, all_predictions)
-    precision, recall, f1, _ = precision_recall_fscore_support(all_groundtruths, all_predictions, average='weighted')
+    
+    macro_p, macro_r, macro_f1, _ = precision_recall_fscore_support(
+        all_groundtruths, all_predictions, average='macro'
+    )
+    micro_p, micro_r, micro_f1, _ = precision_recall_fscore_support(
+        all_groundtruths, all_predictions, average='micro'
+    )
 
-    print(f"\nEvaluation RESULTS for {num_shots}-shot + RAG prompting:")
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    print(f"F1: {f1:.4f}")
+    print(f"Macro Precision: {macro_p:.4f}")
+    print(f"Macro Recall: {macro_r:.4f}")
+    print(f"Macro F1: {macro_f1:.4f}")
+    print(f"Micro Precision: {micro_p:.4f}")
+    print(f"Micro Recall: {micro_r:.4f}")
+    print(f"Micro F1: {micro_f1:.4f}")
 
     wandb.log({
-        "eval/accuracy": accuracy,
-        "eval/precision": precision,
-        "eval/recall": recall,
-        "eval/f1_weighted": f1
+        "eval/macro_precision": macro_p,
+        "eval/macro_recall": macro_r,
+        "eval/macro_f1": macro_f1,
+        "eval/micro_precision": micro_p,
+        "eval/micro_recall": micro_r,
+        "eval/micro_f1": micro_f1
     })
+    
     matches = sum(1 for p, g in zip(all_predictions, all_groundtruths) if p == g)
     total = len(all_predictions)
     print(f"Exact matches: {matches} out of {total}")
 
-    wandb.finish()
+    
 
     results_table = []
 
@@ -316,37 +334,41 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_llama_{num_shots}shot_rag..xlsx'
+    excel_filename = f'relation_extraction_results_{num_shots}shot_llama.xlsx'
     df.to_excel(excel_filename, index=False)
+    print("Unique predictions:", set(all_predictions))
+    print("Unique ground truths:", set(all_groundtruths))
+    relation_labels = sorted(list(set(all_groundtruths + all_predictions)))
+        
+    all_predictions = [normalize_label(o["prediction"]) for o in outputs]
+    all_groundtruths = [normalize_label(valid_relations.get((item["subject_label"], item["object_label"]), 'related_to')) for item in dev_items]
+    relation_labels = sorted(set(all_predictions + all_groundtruths))
+    
+    print("Predictions (repr):", set(map(repr, all_predictions)))
+    print("Ground truths (repr):", set(map(repr, all_groundtruths)))
+    print("Relation labels (repr):", set(map(repr, relation_labels)))
+    for label in all_predictions + all_groundtruths:
+        assert label in relation_labels, f"Label missing: {repr(label)}"
 
+        
+    print("Relation labels:", set(relation_labels))
     print(f"Saved detailed results to {excel_filename}")
-    # initialize wandb run once
-    wandb.init(project="relation-extraction", name=f"RAG4RE_llama_{num_shots}shot_rag.")
 
-    # log scalar metrics
-    wandb.log({
-        "eval/accuracy": accuracy,
-        "eval/precision": precision,
-        "eval/recall": recall,
-        "eval/f1_weighted": f1
-    })
+    
+    cm = confusion_matrix(all_groundtruths, all_predictions, labels=relation_labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=relation_labels)
+    fig, ax = plt.subplots(figsize=(20, 18))  # larger, improves label layout
+    disp.plot(ax=ax, cmap="YlGnBu", xticks_rotation=45, colorbar=True)
+    plt.title('Confusion Matrix', fontsize=18, pad=20)
+    plt.yticks(fontsize=10)
+    plt.xticks(fontsize=10, rotation=45, ha='right')
+    plt.tight_layout()
+    plt.subplots_adjust(left=0.22, bottom=0.22)
 
-    # prepare confusion matrix data
-    all_predictions = [o["prediction"] for o in outputs]
-    all_groundtruths = [o["ground_prediction"] for o in outputs]
-    label_encoder = LabelEncoder()
-    label_encoder.fit(relation_types)
-    y_pred = label_encoder.transform(all_predictions)
-    y_true = label_encoder.transform(all_groundtruths)
+    # Save to buffer for wandb
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    wandb.log({'confusion_matrix': wandb.Image(Image.open(buf))})
 
-    # create and log confusion matrix plot
-    conf_matrix = wandb.plot.confusion_matrix(
-        preds=y_pred,
-        y_true=y_true,
-        class_names=list(label_encoder.classes_),
-        title="Relation Extraction Confusion Matrix"
-    )
-    wandb.log({"confusion_matrix": conf_matrix})
-
-    # finish wandb run
-    wandb.finish()
+    
