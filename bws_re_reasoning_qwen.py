@@ -46,7 +46,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_checkpoint_qwen_reasoning.json'
+    checkpoint_path = 'rag4re_predictions_checkpoint_qwen_20_shot_reasoning.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -283,7 +283,7 @@ if __name__ == "__main__":
         json.dump(outputs, out_f, indent=2)
 
     
-    wandb.init(project="relation-extraction", name="RAG4RE_10_shot_qwen")
+    wandb.init(project="relation-extraction", name="RAG4RE_20_shot__qwen")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
