@@ -6,4 +6,5 @@
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00
 #SBATCH --output=output43.log
+
 ollama serve 

@@ -5,13 +5,10 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00
-#SBATCH --output=output-bws_re_non_reasoning.log
-
+#SBATCH --output=output-bws_re_non_reasoning_20.log
 
 source thesis_env/bin/activate
-
-
 python3 bws_re_non_reasoning_qwen.py \
     --train_file /home/lnuj3/thesis/processed_train.json \
     --dev_file /home/lnuj3/thesis/processed_test.json \
-    --num_shots 10
+    --num_shots 20

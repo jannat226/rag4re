@@ -32,14 +32,13 @@ import os
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Relation Extraction with RAG")
-    parser.add_argument("--train_file", type=str, required=True, help="Path to training JSON file")
-    parser.add_argument("--dev_file", type=str, required=True, help="Path to dev JSON file")
-    parser.add_argument("--num_shots", type=int, default=10, help="Number of few-shot examples")
+    parser.add_argument("--train_file",  help="Path to training JSON file")
+    parser.add_argument("--dev_file",  help="Path to dev JSON file")
+    parser.add_argument("--num_shots", type=int, default=10, help="Number of few-shot examples")    
     return parser.parse_args()
 
 def normalize_label(label):
     return str(label).strip().lower()
-
 
 if __name__ == "__main__":
     args = parse_args()
@@ -47,7 +46,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3_20.json'
+    checkpoint_path = 'rag4re_predictions_checkpoint_qwen_70_shot_reasoning.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -57,8 +56,9 @@ if __name__ == "__main__":
     else:
         outputs = []
 
-    class RelationNoReasoning(BaseModel):
+    class RelationWithReasoning(BaseModel):
         relation: str
+        reasoning: str
 
 
     # valid_relations dictionary
@@ -131,8 +131,6 @@ if __name__ == "__main__":
 
     with open(processed_dev_file, 'r') as f:
         dev_items = json.load(f)
-
-
 
     print(f"Training items: {len(train_items)}")
     print(f"Dev items: {len(dev_items)}")
@@ -216,20 +214,15 @@ if __name__ == "__main__":
             )
             few_shot_examples.append(example_text)
 
-        few_shot_prompt = "\n---\n".join(few_shot_examples)
+        few_shot_prompt = "\n-\n".join(few_shot_examples)
 
         # full user prompt with retrieved shots + query
-        
         user_prompt = (
-            f"{few_shot_prompt}\n---\n"
+            f"{few_shot_prompt}\n-\n"
             f"New sentence: {query_text}\n"
             f"Entities: {head_entity}, {tail_entity}\n"
-            "Respond only with a valid JSON in the form {\"relation\": \"<relation>\"}.\n"
-            "Do not include any reasoning or explanation in the response."
+            "Respond only with a valid JSON in the form {\"relation\": \"<relation>\", \"reasoning\": \"<explanation>\"}."
         )
-        # print("====== PROMPT PASSED TO LLM ======")
-        # print("user prompt is " , user_prompt)
-        # print("==================================")
 
         messages = [
             ChatMessage(
@@ -237,46 +230,23 @@ if __name__ == "__main__":
                 content=(
                     f"You are an expert relation extractor. Choose one relation from this list: "
                     f"[{', '.join(relation_types)}]. "
-                    "Please provide the relation in a JSON object. /no_think"
+                    "Please provide the relation and reasoning in a JSON object."
                 )
             ),
-
-            ChatMessage(
-                role="user",
-                content="/nothink " + user_prompt
-            )
-            ,
+            ChatMessage(role="user", content=user_prompt),
         ]
-        # print("====== PROMPT PASSED TO LLM ======")
-        # print("message is  " , messages)
-        # print("==================================")
-        
-        
-       
-        pred_text = generation_model.chat(
-            messages,
-            format=RelationNoReasoning.model_json_schema(),
-            think=False
-        )
 
-       
-            
-        print("Model raw output:")
-        print(pred_text.message.content)
+        pred_text = generation_model.chat(messages, format=RelationWithReasoning.model_json_schema())
 
-        # Then parse as usual if needed
         try:
-            prediction_obj = RelationNoReasoning.model_validate_json(pred_text.message.content)
+            prediction_obj = RelationWithReasoning.model_validate_json(pred_text.message.content)
             relation = prediction_obj.relation
-            reasoning = ""  # Reasoning expected to be empty in non-reasoning mode
-
+            reasoning = prediction_obj.reasoning
         except Exception as e:
-            print(f"Failed to parse structured output: {e}")
+            print(f"Failed to parse structured output for dev item {idx + 1}: {e}")
             relation = "unknown"
             reasoning = ""
 
-        print("Parsed relation:", relation)
-        print("Reasoning (should be empty or minimal):", reasoning)
         outputs.append({
             "dev_idx": idx,
             "head": head_entity,
@@ -294,7 +264,7 @@ if __name__ == "__main__":
 
 
         print(f"Dev item {idx + 1} - Relation: {relation}")
-        print(f"Reasoning: {reasoning}\n---\n")
+        print(f"Reasoning: {reasoning}\n-\n")
         print(
             f"head: {head_entity}\n"
             f"tail: {tail_entity}\n"
@@ -309,12 +279,11 @@ if __name__ == "__main__":
             match_count += 1
         print("the number of match are", match_count)
 
-
-    with open(f'rag4re_predictions_20_shot_non_reasoning_qwen.json', 'w') as out_f:
+    with open(f'rag4re_predictions_{num_shots}shot_qwen.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     
-    wandb.init(project="relation-extraction", name="RAG4RE_20_shot_non_reasoning_qwen")
+    wandb.init(project="relation-extraction", name="RAG4RE_70_shot__qwen")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -344,7 +313,10 @@ if __name__ == "__main__":
         "eval/micro_recall": micro_r,
         "eval/micro_f1": micro_f1
     })
-
+    matches = sum(1 for p, g in zip(all_predictions, all_groundtruths) if p == g)
+    total = len(all_predictions)
+    print(f"Exact matches: {matches} out of {total}")
+    
     
 
     results_table = []
@@ -361,7 +333,7 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_20_shot_non_reasoning_qwen.xlsx'
+    excel_filename = f'relation_extraction_results_{num_shots}shot_qwen.xlsx'
     df.to_excel(excel_filename, index=False)
     print("Unique predictions:", set(all_predictions))
     print("Unique ground truths:", set(all_groundtruths))
@@ -370,6 +342,7 @@ if __name__ == "__main__":
     all_predictions = [normalize_label(o["prediction"]) for o in outputs]
     all_groundtruths = [normalize_label(valid_relations.get((item["subject_label"], item["object_label"]), 'related_to')) for item in dev_items]
     relation_labels = sorted(set(all_predictions + all_groundtruths))
+    
     
     print("Predictions (repr):", set(map(repr, all_predictions)))
     print("Ground truths (repr):", set(map(repr, all_groundtruths)))
@@ -381,19 +354,14 @@ if __name__ == "__main__":
     print("Relation labels:", set(relation_labels))
     print(f"Saved detailed results to {excel_filename}")
 
-   
-    
     # cm = confusion_matrix(all_groundtruths, all_predictions, labels=relation_labels)
-    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=relation_labels)
-    # fig, ax = plt.subplots(figsize=(16, 12))
-    # disp.plot(ax=ax, cmap="YlGnBu", xticks_rotation=45, colorbar=True)
-    # plt.title('Confusion Matrix', fontsize=18, pad=20)
-    # plt.tight_layout()
-
-    # buf = io.BytesIO()
-    # fig.savefig(buf, format="png") 
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+    #                           display_labels = relation_labels)
+    # disp.plot()
+    # buf = io.BytesIO()  
+    # disp.figure_.savefig(buf, format="png")
     # buf.seek(0)
-    # wandb.log({'chart': wandb.Image(Image.open(buf))})
+    # wandb.log({ 'chart' : wandb.Image(Image.open(buf))})
         
     cm = confusion_matrix(all_groundtruths, all_predictions, labels=relation_labels)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=relation_labels)
@@ -410,7 +378,48 @@ if __name__ == "__main__":
     fig.savefig(buf, format="png")
     buf.seek(0)
     wandb.log({'confusion_matrix': wandb.Image(Image.open(buf))})
+    
+    cm = confusion_matrix(all_groundtruths, all_predictions, labels=relation_labels)
+    class_counts = np.sum(cm, axis=1) 
+    TP = np.diag(cm)
+    FP = np.sum(cm, axis=0) - TP
+    FN = np.sum(cm, axis=1) - TP
+    TN = np.sum(cm) - (TP + FP + FN)
+   
+    
+    precision = np.divide(TP, TP + FP, out=np.zeros_like(TP, dtype=float), where=(TP+FP)!=0)
+    recall = np.divide(TP, TP + FN, out=np.zeros_like(TP, dtype=float), where=(TP+FN)!=0)
+    f1 = np.divide(2 * precision * recall, precision + recall, out=np.zeros_like(precision, dtype=float), where=(precision+recall)!=0)
 
+   
+    macro_precision = np.mean(precision)
+    macro_recall = np.mean(recall)
+    macro_f1 = np.mean(f1)
+    
+    weighted_precision = np.sum(precision * class_counts) / np.sum(class_counts)
+    weighted_recall = np.sum(recall * class_counts) / np.sum(class_counts)
+    weighted_f1 = np.sum(f1 * class_counts) / np.sum(class_counts)
+
+    TP_total = np.sum(TP)
+    FP_total = np.sum(FP)
+    FN_total = np.sum(FN)
+    TN_total = np.sum(TN)
+    print("True positives - ", TP_total)
+    print("False positives - ", FP_total)
+    print("False Negatives - ", FN_total)
+    print(f"True Negatives (TN): {TN_total}")
+    
+    micro_precision = TP_total / (TP_total + FP_total)
+    micro_recall = TP_total / (TP_total + FN_total)
+    micro_f1 = 2 * micro_precision * micro_recall / (micro_precision + micro_recall)
+
+    print("Manual Macro Precision:", macro_precision)
+    print("Manual Macro Recall:", macro_recall)
+    print("Manual Macro F1:", macro_f1)
+    print("Manual Weighted F1:", weighted_f1)
+    print("Manual Micro Precision:", micro_precision)
+    print("Manual Micro Recall:", micro_recall)
+    print("Manual Micro F1:", micro_f1)
 
         
-    
+            
