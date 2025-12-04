@@ -47,7 +47,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3_50.json'
+    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3_10.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -309,11 +309,11 @@ if __name__ == "__main__":
         print("the number of match are", match_count)
 
 
-    with open(f'rag4re_predictions_50_shot_non_reasoning_qwen.json', 'w') as out_f:
+    with open(f'rag4re_predictions_10_shot_non_reasoning_qwen.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     
-    wandb.init(project="relation-extraction", name="RAG4RE_50_shot_non_reasoning_qwen")
+    wandb.init(project="relation-extraction", name="RAG4RE_10_shot_non_reasoning_qwen")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -360,7 +360,7 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_50_shot_non_reasoning_qwen.xlsx'
+    excel_filename = f'relation_extraction_results_10_shot_non_reasoning_qwen.xlsx'
     df.to_excel(excel_filename, index=False)
     print("Unique predictions:", set(all_predictions))
     print("Unique ground truths:", set(all_groundtruths))
