@@ -47,7 +47,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3_10.json'
+    checkpoint_path = 'rag4re_predictions_nonReasoning_Qwen_checkpoint3_5.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -124,16 +124,13 @@ if __name__ == "__main__":
         ("microbiome", "DDF"): "is linked to",
         ("microbiome", "microbiome"): "compared to"
     }
-
     # load data
     with open(processed_train_file, 'r') as f:
         train_items = json.load(f)
 
     with open(processed_dev_file, 'r') as f:
         dev_items = json.load(f)
-
-
-
+        
     print(f"Training items: {len(train_items)}")
     print(f"Dev items: {len(dev_items)}")
 
@@ -248,17 +245,12 @@ if __name__ == "__main__":
         ]
         # print("====== PROMPT PASSED TO LLM ======")
         # print("message is  " , messages)
-        # print("==================================")
-        
-        
-       
+        # print("==================================")   
         pred_text = generation_model.chat(
             messages,
             format=RelationNoReasoning.model_json_schema(),
             think=False
         )
-
-       
             
         print("Model raw output:")
         print(pred_text.message.content)
@@ -309,11 +301,11 @@ if __name__ == "__main__":
         print("the number of match are", match_count)
 
 
-    with open(f'rag4re_predictions_10_shot_non_reasoning_qwen.json', 'w') as out_f:
+    with open(f'rag4re_predictions_5_shot_non_reasoning_qwen.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     
-    wandb.init(project="relation-extraction", name="RAG4RE_10_shot_non_reasoning_qwen")
+    wandb.init(project="relation-extraction", name="RAG4RE_5_shot_non_reasoning_qwen")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [
@@ -360,7 +352,7 @@ if __name__ == "__main__":
         })
 
     df = pd.DataFrame(results_table)
-    excel_filename = f'relation_extraction_results_10_shot_non_reasoning_qwen.xlsx'
+    excel_filename = f'relation_extraction_results_5_shot_non_reasoning_qwen.xlsx'
     df.to_excel(excel_filename, index=False)
     print("Unique predictions:", set(all_predictions))
     print("Unique ground truths:", set(all_groundtruths))

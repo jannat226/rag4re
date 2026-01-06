@@ -46,7 +46,7 @@ if __name__ == "__main__":
     processed_dev_file = args.dev_file
     num_shots = args.num_shots
     #checkpoints
-    checkpoint_path = 'rag4re_predictions_checkpoint_qwen_70_shot_reasoning.json'
+    checkpoint_path = 'rag4re_predictions_checkpoint_qwen_25_shot_reasoning_temp_0.1.json'
     outputs = []
     done_indices = set()
     if os.path.exists(checkpoint_path):
@@ -185,6 +185,7 @@ if __name__ == "__main__":
         model="qwen3:14b",
         request_timeout=600,
         context_window=8000,
+        generate_kwargs={"temperature": 0.1},
     )
 
     relation_types = list(set(valid_relations.values()))
@@ -281,11 +282,11 @@ if __name__ == "__main__":
             match_count += 1
         print("the number of match are", match_count)
 
-    with open(f'rag4re_predictions_{num_shots}shot_qwen.json', 'w') as out_f:
+    with open(f'rag4re_predictions_25_shot_qwen_temp_0.1.json', 'w') as out_f:
         json.dump(outputs, out_f, indent=2)
 
     
-    wandb.init(project="relation-extraction", name="RAG4RE_70_shot__qwen")
+    wandb.init(project="relation-extraction", name="RAG4RE_25_shot__qwen_temp0.1")
 
     all_predictions = [o["prediction"] for o in outputs]
     all_groundtruths = [

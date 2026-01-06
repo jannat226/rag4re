@@ -1,0 +1,83 @@
+Ground truth class frequencies:
+is linked to: 1126
+compared to: 500
+located in: 1865
+change abundance: 1568
+is a: 4788
+target: 1273
+strike: 612
+interact: 2165
+impact: 927
+influence: 1955
+administered: 974
+change expression: 494
+used by: 225
+part of: 1214
+change effect: 541
+Total unique ground truth labels: 15
+
+Prediction class frequencies:
+is linked to: 2770
+compared to: 674
+located in: 2217
+is a: 3746
+change abundance: 674
+strike: 403
+interact: 1367
+target: 1106
+influence: 2953
+impact: 1104
+change expression: 406
+used by: 233
+part of: 1154
+change effect: 640
+produced by: 2
+administered: 772
+characterized by: 2
+correlated with: 2
+evaluated by: 1
+treated with: 1
+Total unique predicted labels: 20
+
+Total unique labels (union): 20
+
+Per-label scores (over union of labels):
+Label                              F1 Precision  Recall  Support
+administered               0.872     0.986   0.781      974
+change abundance           0.439     0.730   0.314     1568
+change effect              0.806     0.744   0.880      541
+change expression          0.813     0.901   0.741      494
+characterized by           0.000     0.000   0.000        0
+compared to                0.789     0.687   0.926      500
+correlated with            0.000     0.000   0.000        0
+evaluated by               0.000     0.000   0.000        0
+impact                     0.746     0.687   0.818      927
+influence                  0.701     0.582   0.880     1955
+interact                   0.659     0.851   0.538     2165
+is a                       0.829     0.944   0.739     4788
+is linked to               0.546     0.384   0.945     1126
+located in                 0.888     0.818   0.972     1865
+part of                    0.915     0.938   0.892     1214
+produced by                0.000     0.000   0.000        0
+strike                     0.753     0.948   0.624      612
+target                     0.810     0.872   0.757     1273
+treated with               0.000     0.000   0.000        0
+used by                    0.943     0.927   0.960      225
+
+Labels considered for per-label computation (union):
+['administered', 'change abundance', 'change effect', 'change expression', 'characterized by', 'compared to', 'correlated with', 'evaluated by', 'impact', 'influence', 'interact', 'is a', 'is linked to', 'located in', 'part of', 'produced by', 'strike', 'target', 'treated with', 'used by']
+Number of classes in union: 20
+
+Ground truth label subset used for macro metrics:
+['administered', 'change abundance', 'change effect', 'change expression', 'compared to', 'impact', 'influence', 'interact', 'is a', 'is linked to', 'located in', 'part of', 'strike', 'target', 'used by']
+Number of ground truth classes: 15
+
+Macro metrics over ground truth labels only:
+  Macro Precision (ground_truth_only): 0.8000
+  Macro Recall    (ground_truth_only): 0.7844
+  Macro F1        (ground_truth_only): 0.7673
+
+Micro metrics (over all labels):
+  Micro Precision: 0.7544
+  Micro Recall:    0.7544
+  Micro F1 score:  0.7544

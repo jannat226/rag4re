@@ -1,0 +1,150 @@
+Ground truth class frequencies:
+is linked to: 1126
+compared to: 500
+located in: 1865
+change abundance: 1568
+is a: 4788
+target: 1273
+strike: 612
+interact: 2165
+impact: 927
+influence: 1955
+administered: 974
+change expression: 494
+used by: 225
+part of: 1214
+change effect: 541
+Total unique ground truth labels: 15
+
+Prediction class frequencies:
+is linked to: 3225
+interact: 759
+change abundance: 2018
+is a: 1353
+located in: 409
+change effect: 637
+compared to: 729
+influence: 2073
+impact: 6154
+part of: 162
+hypothesis of a potential: 1
+hypothesized: 1
+target: 1166
+used by: 945
+studied in: 3
+associated with: 6
+compare: 9
+change expression: 316
+produced by: 3
+correlated with: 85
+generated in: 1
+correlate: 4
+correlated: 2
+inverse: 2
+administered: 107
+manipulation: 1
+caused by: 7
+cause: 1
+dysregulation of cerebral signaling molecules: 1
+tested in: 1
+alleviated: 1
+communicate: 1
+studied: 1
+affects: 1
+implicated in: 2
+produced in: 1
+none: 4
+assessed with: 1
+co-morbid: 1
+treated with: 1
+treated: 1
+increase exposure: 1
+exposure: 2
+exacerbate: 1
+linked to: 12
+improved: 1
+related to: 3
+causal: 3
+transplanted: 1
+lead to: 1
+modulates: 3
+transplantation: 1
+treat: 2
+Total unique predicted labels: 53
+
+Total unique labels (union): 54
+
+Per-label scores (over union of labels):
+Label                         F1 Precision  Recall  Support
+administered               0.076     0.383   0.042      974
+affects                    0.000     0.000   0.000        0
+alleviated                 0.000     0.000   0.000        0
+assessed with              0.000     0.000   0.000        0
+associated with            0.000     0.000   0.000        0
+causal                     0.000     0.000   0.000        0
+cause                      0.000     0.000   0.000        0
+caused by                  0.000     0.000   0.000        0
+change abundance           0.103     0.091   0.117     1568
+change effect              0.048     0.044   0.052      541
+change expression          0.025     0.032   0.020      494
+co-morbid                  0.000     0.000   0.000        0
+communicate                0.000     0.000   0.000        0
+compare                    0.000     0.000   0.000        0
+compared to                0.028     0.023   0.034      500
+correlate                  0.000     0.000   0.000        0
+correlated                 0.000     0.000   0.000        0
+correlated with            0.000     0.000   0.000        0
+dysregulation of cerebral signaling molecules  0.000     0.000   0.000        0
+exacerbate                 0.000     0.000   0.000        0
+exposure                   0.000     0.000   0.000        0
+generated in               0.000     0.000   0.000        0
+hypothesis of a potential  0.000     0.000   0.000        0
+hypothesized               0.000     0.000   0.000        0
+impact                     0.093     0.054   0.356      927
+implicated in              0.000     0.000   0.000        0
+improved                   0.000     0.000   0.000        0
+increase exposure          0.000     0.000   0.000        0
+influence                  0.129     0.125   0.132     1955
+interact                   0.068     0.130   0.046     2165
+inverse                    0.000     0.000   0.000        0
+is a                       0.214     0.486   0.137     4788
+is linked to               0.120     0.081   0.231     1126
+lead to                    0.000     0.000   0.000        0
+linked to                  0.000     0.000   0.000        0
+located in                 0.241     0.670   0.147     1865
+manipulation               0.000     0.000   0.000        0
+modulates                  0.000     0.000   0.000        0
+none                       0.000     0.000   0.000        0
+part of                    0.115     0.488   0.065     1214
+produced by                0.000     0.000   0.000        0
+produced in                0.000     0.000   0.000        0
+related to                 0.000     0.000   0.000        0
+strike                     0.000     0.000   0.000      612
+studied                    0.000     0.000   0.000        0
+studied in                 0.000     0.000   0.000        0
+target                     0.060     0.063   0.057     1273
+tested in                  0.000     0.000   0.000        0
+transplantation            0.000     0.000   0.000        0
+transplanted               0.000     0.000   0.000        0
+treat                      0.000     0.000   0.000        0
+treated                    0.000     0.000   0.000        0
+treated with               0.000     0.000   0.000        0
+used by                    0.267     0.165   0.693      225
+
+Labels considered for per-label computation (union):
+['administered', 'affects', 'alleviated', 'assessed with', 'associated with', 'causal', 'cause', 'caused by', 'change abundance', 'change effect', 'change expression', 'co-morbid', 'communicate', 'compare', 'compared to', 'correlate', 'correlated', 'correlated with', 'dysregulation of cerebral signaling molecules', 'exacerbate', 'exposure', 'generated in', 'hypothesis of a potential', 'hypothesized', 'impact', 'implicated in', 'improved', 'increase exposure', 'influence', 'interact', 'inverse', 'is a', 'is linked to', 'lead to', 'linked to', 'located in', 'manipulation', 'modulates', 'none', 'part of', 'produced by', 'produced in', 'related to', 'strike', 'studied', 'studied in', 'target', 'tested in', 'transplantation', 'transplanted', 'treat', 'treated', 'treated with', 'used by']
+Number of classes in union: 54
+
+Ground truth label subset used for macro metrics:
+['administered', 'change abundance', 'change effect', 'change expression', 'compared to', 'impact', 'influence', 'interact', 'is a', 'is linked to', 'located in', 'part of', 'strike', 'target', 'used by']
+Number of ground truth classes: 15
+
+Macro metrics over ground truth labels only:
+  Macro Precision (ground_truth_only): 0.1890
+  Macro Recall    (ground_truth_only): 0.1420
+  Macro F1        (ground_truth_only): 0.1056
+
+Micro metrics (over all labels):
+  Micro Precision: 0.1220
+  Micro Recall:    0.1220
+  Micro F1 score:  0.1220
